@@ -25,7 +25,7 @@
   "homepage": "https://github.com/front-doorxyz/front-door-contracts#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "hardhat": "^2.17.1"
+    "hardhat": "^2.17.2"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3"

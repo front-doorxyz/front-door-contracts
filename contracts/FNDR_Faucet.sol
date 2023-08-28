@@ -17,7 +17,7 @@ contract FNDR_Faucet is Ownable {
         FNDRAddress = _ERC20Address;
     }
 
-    function request(uint _amount) external {
+    function requestTokens(uint _amount) external {
         require(
             lastRequest[msg.sender] + 1 days < block.timestamp,
             "You can only request once per day"
@@ -28,6 +28,7 @@ contract FNDR_Faucet is Ownable {
         );
         lastRequest[msg.sender] = block.timestamp;
         IERC20(FNDRAddress).transfer(msg.sender, _amount);
+        emit TokensTransfered(msg.sender, _amount);
     }
 
     function getBalance() external view returns (uint) {
@@ -39,4 +40,6 @@ contract FNDR_Faucet is Ownable {
 
     // Fallback function is called when msg.data is not empty
     fallback() external payable {}
+
+    event TokensTransfered(address indexed user, uint256 amount);
 }
