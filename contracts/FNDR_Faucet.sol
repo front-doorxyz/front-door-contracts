@@ -11,15 +11,32 @@ contract FNDR_Faucet is Ownable {
     // FNDR token address
     address public FNDRAddress;
 
-    mapping (address => uint) lastRequest;
+    mapping(address => uint) lastRequest;
+
     constructor(address _ERC20Address) {
         FNDRAddress = _ERC20Address;
     }
 
-    function request (uint _amount) external {
-        require (lastRequest[msg.sender] + 1 days < block.timestamp, "You can only request once per day");
-        require (IERC20(FNDRAddress).balanceOf(address(this)) >= _amount, "Not enough tokens in the faucet");
+    function request(uint _amount) external {
+        require(
+            lastRequest[msg.sender] + 1 days < block.timestamp,
+            "You can only request once per day"
+        );
+        require(
+            IERC20(FNDRAddress).balanceOf(address(this)) >= _amount,
+            "Not enough tokens in the faucet"
+        );
         lastRequest[msg.sender] = block.timestamp;
         IERC20(FNDRAddress).transfer(msg.sender, _amount);
     }
+
+    function getBalance() external view returns (uint) {
+        return IERC20(FNDRAddress).balanceOf(address(this));
+    }
+
+    // Function to receive Ether. msg.data must be empty
+    receive() external payable {}
+
+    // Fallback function is called when msg.data is not empty
+    fallback() external payable {}
 }
