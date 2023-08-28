@@ -1,0 +1,30 @@
+{
+  "name": "front-door-contracts",
+  "version": "1.0.0",
+  "description": "Front Door Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/front-doorxyz/front-door-contracts.git"
+  },
+  "keywords": [
+    "Front",
+    "Door",
+    "Smart",
+    "Contracts",
+    "Solidity"
+  ],
+  "author": "Front Door Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/front-doorxyz/front-door-contracts/issues"
+  },
+  "homepage": "https://github.com/front-doorxyz/front-door-contracts#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "hardhat": "^2.17.1"
+  }
+}
