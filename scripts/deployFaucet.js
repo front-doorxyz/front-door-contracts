@@ -7,19 +7,18 @@
 const hre = require("hardhat");
 
 async function main() {
-
-
   const fndrToken = await hre.ethers.deployContract("FrontDoorToken", []);
   await fndrToken.waitForDeployment();
   const fndrTokenAddress = fndrToken.target;
 
-  console.log("Front Door Token deployed to: ",fndrTokenAddress);
-  
-  const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [fndrTokenAddress]);
+  console.log("Front Door Token deployed to: ", fndrTokenAddress);
+
+  const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [
+    fndrTokenAddress,
+  ]);
   await fndrFaucet.waitForDeployment();
   const fndrFaucetAddress = fndrFaucet.target;
-  console.log("Front Door Faucet deployed to: ",fndrFaucetAddress);
-
+  console.log("Front Door Faucet deployed to: ", fndrFaucetAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

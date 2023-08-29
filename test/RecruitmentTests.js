@@ -165,7 +165,6 @@ describe("Recruitment", () => {
       // console.log("transaction: ", jobId);
       const receipt = await jobId.wait();
 
-
       const email = "john.doe@mail.com";
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.getReferrer(referrer.address);

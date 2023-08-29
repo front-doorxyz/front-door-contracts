@@ -8,28 +8,54 @@ const hre = require("hardhat");
 
 async function main() {
   const [owner, company, referrer, referree, frontDoorWallet] =
-  await ethers.getSigners();
+    await ethers.getSigners();
 
   const fndrToken = await hre.ethers.deployContract("FrontDoorToken", []);
   await fndrToken.waitForDeployment();
   const fndrTokenAddress = fndrToken.target;
 
-  console.log("Front Door Token deployed to: ",fndrTokenAddress);
-  
-  const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [fndrTokenAddress]);
+  console.log("Front Door Token deployed to: ", fndrTokenAddress);
+
+  const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [
+    fndrTokenAddress,
+  ]);
   await fndrFaucet.waitForDeployment();
   const fndrFaucetAddress = fndrFaucet.target;
 
-  console.log("Front Door Faucet deployed to: ",fndrFaucetAddress);
-  
+  console.log("Front Door Faucet deployed to: ", fndrFaucetAddress);
 
   const recruitment = await hre.ethers.deployContract("Recruitment", [
     fndrTokenAddress,
     frontDoorWallet.address,
   ]);
   await recruitment.waitForDeployment();
-  console.log("Front Door Recruiter Contract deployed to: ",fndrFaucetAddress);
+  console.log("Front Door Recruiter Contract deployed to: ", fndrFaucetAddress);
 
+  const tkns = ethers.parseEther("1000");
+  await fndrToken.transfer(company.getAddress(), tkns);
+  await fndrToken.transfer(referrer.getAddress(), tkns);
+  await fndrToken.transfer(referree.getAddress(), tkns);
+
+  console.log(
+    "Company FNDR Tokens: ",
+    ethers.formatEther(await fndrToken.balanceOf(company.getAddress()))
+  );
+  console.log(
+    "Referrer FNDR Tokens: ",
+    ethers.formatEther(await fndrToken.balanceOf(referrer.getAddress()))
+  );
+  console.log(
+    "Referree FNDR Tokens: ",
+    ethers.formatEther(await fndrToken.balanceOf(referree.getAddress()))
+  );
+
+  const value = ethers.parseEther("5000000");
+  await fndrToken.transfer(fndrFaucetAddress, value);
+
+  console.log(
+    "Faucet FNDR Tokens: ",
+    ethers.formatEther(await fndrToken.balanceOf(fndrFaucetAddress))
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere
