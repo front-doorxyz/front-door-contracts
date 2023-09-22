@@ -13,7 +13,7 @@ async function main() {
   const fndrToken = await hre.ethers.deployContract("FrontDoorToken", []);
   await fndrToken.waitForDeployment();
   const fndrTokenAddress = fndrToken.target;
-  console.log("Deploying Contracts");
+  console.log("Deploying Contracts...");
   console.log("Front Door Token deployed to: ", fndrTokenAddress);
 
   const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [
@@ -24,7 +24,7 @@ async function main() {
 
   console.log("Front Door Faucet deployed to: ", fndrFaucetAddress);
 
-  console.log("Configuring roles in Front Door Token");
+  console.log("Configuring roles in Front Door Token...");
 
   await fndrToken.setFaucet(fndrFaucetAddress);
 
@@ -38,7 +38,7 @@ async function main() {
     recruitment.target
   );
 
-  console.log("Requesting tokens for company and referrer");
+  console.log("Requesting tokens for company and referrer...");
   const tkns = ethers.parseEther("1000");
   await fndrFaucet.connect(company).requestTokens(tkns);
   await fndrFaucet.connect(referrer).requestTokens(tkns);
