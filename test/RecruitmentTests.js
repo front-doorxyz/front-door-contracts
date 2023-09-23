@@ -162,7 +162,6 @@ describe("Recruitment", () => {
       const bounty = ethers.parseEther("100");
       await frontDoorToken.connect(company).approve(recruitment.target, bounty);
       const jobId = await recruitment.connect(company).registerJob(bounty);
-      // console.log("transaction: ", jobId);
       const receipt = await jobId.wait();
 
       const email = "john.doe@mail.com";

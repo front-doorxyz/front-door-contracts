@@ -5,7 +5,31 @@ pragma solidity 0.8.18;
 // import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IERC20 {
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 amount) external returns (bool);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+    function mint(address to, uint256 amount) external;
+
+}
 
 contract FNDR_Faucet is Ownable {
     // FNDR token address
@@ -22,24 +46,15 @@ contract FNDR_Faucet is Ownable {
             lastRequest[msg.sender] + 1 days < block.timestamp,
             "You can only request once per day"
         );
-        require(
-            IERC20(FNDRAddress).balanceOf(address(this)) >= _amount,
-            "Not enough tokens in the faucet"
-        );
+        
         lastRequest[msg.sender] = block.timestamp;
-        IERC20(FNDRAddress).transfer(msg.sender, _amount);
+        IERC20(FNDRAddress).mint(msg.sender, _amount);
         emit TokensTransfered(msg.sender, _amount);
     }
 
     function getBalance() external view returns (uint) {
         return IERC20(FNDRAddress).balanceOf(address(this));
     }
-
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
-
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
 
     event TokensTransfered(address indexed user, uint256 amount);
 }

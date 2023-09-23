@@ -13,7 +13,7 @@ async function main() {
   const fndrToken = await hre.ethers.deployContract("FrontDoorToken", []);
   await fndrToken.waitForDeployment();
   const fndrTokenAddress = fndrToken.target;
-
+  console.log("Deploying Contracts...");
   console.log("Front Door Token deployed to: ", fndrTokenAddress);
 
   const fndrFaucet = await hre.ethers.deployContract("FNDR_Faucet", [
@@ -24,17 +24,24 @@ async function main() {
 
   console.log("Front Door Faucet deployed to: ", fndrFaucetAddress);
 
+  console.log("Configuring roles in Front Door Token...");
+
+  await fndrToken.setFaucet(fndrFaucetAddress);
+
   const recruitment = await hre.ethers.deployContract("Recruitment", [
     fndrTokenAddress,
     frontDoorWallet.address,
   ]);
   await recruitment.waitForDeployment();
-  console.log("Front Door Recruiter Contract deployed to: ", fndrFaucetAddress);
+  console.log(
+    "Front Door Recruiter Contract deployed to: ",
+    recruitment.target
+  );
 
+  console.log("Requesting tokens for company and referrer...");
   const tkns = ethers.parseEther("1000");
-  await fndrToken.transfer(company.getAddress(), tkns);
-  await fndrToken.transfer(referrer.getAddress(), tkns);
-  await fndrToken.transfer(referree.getAddress(), tkns);
+  await fndrFaucet.connect(company).requestTokens(tkns);
+  await fndrFaucet.connect(referrer).requestTokens(tkns);
 
   console.log(
     "Company FNDR Tokens: ",
@@ -43,18 +50,6 @@ async function main() {
   console.log(
     "Referrer FNDR Tokens: ",
     ethers.formatEther(await fndrToken.balanceOf(referrer.getAddress()))
-  );
-  console.log(
-    "Referree FNDR Tokens: ",
-    ethers.formatEther(await fndrToken.balanceOf(referree.getAddress()))
-  );
-
-  const value = ethers.parseEther("5000000");
-  await fndrToken.transfer(fndrFaucetAddress, value);
-
-  console.log(
-    "Faucet FNDR Tokens: ",
-    ethers.formatEther(await fndrToken.balanceOf(fndrFaucetAddress))
   );
 }
 
