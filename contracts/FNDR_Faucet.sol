@@ -52,9 +52,5 @@ contract FNDR_Faucet is Ownable {
         emit TokensTransfered(msg.sender, _amount);
     }
 
-    function getBalance() external view returns (uint) {
-        return IERC20(FNDRAddress).balanceOf(address(this));
-    }
-
     event TokensTransfered(address indexed user, uint256 amount);
 }

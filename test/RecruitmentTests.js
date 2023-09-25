@@ -17,16 +17,21 @@ describe("Recruitment", () => {
     await frontDoorToken.waitForDeployment();
     const frontDoorTokenAddress = frontDoorToken.target;
 
-    const tkns = ethers.parseEther("1000");
-    await frontDoorToken.transfer(company.getAddress(), tkns);
-    await frontDoorToken.transfer(referrer.getAddress(), tkns);
-    await frontDoorToken.transfer(referree.getAddress(), tkns);
+    const faucet = await hre.ethers.deployContract("FNDR_Faucet", [
+      frontDoorTokenAddress,
+    ]);
+    await faucet.waitForDeployment();
+    const faucetAddress = faucet.target;
+    await frontDoorToken.setFaucet(faucetAddress);
+
 
     const recruitment = await hre.ethers.deployContract("Recruitment", [
       frontDoorTokenAddress,
       frontDoorWallet.address,
     ]);
     await recruitment.waitForDeployment();
+  
+    await faucet.connect(company).requestTokens(ethers.parseEther("5000000"));
 
     return { frontDoorToken, recruitment, owner, company, referrer, referree };
   };
