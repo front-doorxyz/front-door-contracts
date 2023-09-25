@@ -371,10 +371,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
         return jobCandidatehire[_jobId];
     }
 
-    /// diburseBounty
+    /// disburseBounty
     /// @param _jobId Job id
-    /// @dev diburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern 
-    function diburseBounty(
+    /// @dev disburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern 
+    function disburseBounty(
         uint256 _jobId
     ) external nonReentrant checkIfItisACompany(msg.sender) {
         require(jobList[_jobId].issucceed == true, "Job is not succeed yet");
@@ -383,26 +383,26 @@ contract Recruitment is Ownable, ReentrancyGuard {
             "No candidate is hired yet"
         );
         require(
-            jobList[_jobId].isDibursed == false,
-            "Bounty is already dibursed"
+            jobList[_jobId].isDisbursed == false,
+            "Bounty is already disbursed"
         );
         require(jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp, "90 days are not completed yet");
         require(
             jobList[_jobId].creator == msg.sender,
-            "Only job creator can diburse"
+            "Only job creator can disburse"
         );
 
-        jobList[_jobId].isDibursed = true;
+        jobList[_jobId].isDisbursed = true;
         uint256 bounty = jobList[_jobId].bounty;
 
         bountyClaim[jobCandidatehire[_jobId].referrer] = bountyClaim[jobCandidatehire[_jobId].referrer] + (bounty * 6500) / 10_000;
         bountyClaim[jobCandidatehire[_jobId].wallet] = bountyClaim[jobCandidatehire[_jobId].wallet] + (bounty * 1000) / 10_000;
         bountyClaim[frontDoorAddress] = bountyClaim[frontDoorAddress] + (bounty * 2500) / 10_000;
     
-        emit BountyDiburse(_jobId);
+        emit BountyDisburse(_jobId);
     }
-    /// diburseBounty
-    /// @dev claim dibursed bounty
+    /// claimBounty
+    /// @dev claim disbursed bounty
     function claimBounty() external nonReentrant {
         uint256 bounty = bountyClaim[msg.sender];
         require(bounty > 0, "No bounty to claim");
@@ -410,7 +410,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         frontDoorToken.transfer(msg.sender, bounty);
     }
 
-    event BountyDiburse(uint256 _jobId);
+    event BountyDisburse(uint256 _jobId);
     event PercentagesCompleted(
         address indexed sender,
         uint8 month1RefundPct,

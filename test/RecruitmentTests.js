@@ -188,9 +188,9 @@ describe("Recruitment", () => {
       await hire.wait();
       const seconds = 31 * 24 * 60 * 60 * 3;
       await ethers.provider.send("evm_increaseTime", [seconds]);
-      await recruitment.connect(company).diburseBounty(1);
+      await recruitment.connect(company).disburseBounty(1);
     });
-    it("Cannot diburse if timelock did not expired", async () => {
+    it("Cannot disburse if timelock did not expired", async () => {
       const { frontDoorToken, recruitment, company, referrer, referree } =
         await loadFixture(fixture);
       await recruitment.connect(company).registerCompany();
@@ -220,7 +220,7 @@ describe("Recruitment", () => {
         .hireCandidate(referree.address, 1);
       await hire.wait();
       await expect(
-        recruitment.connect(company).diburseBounty(1)
+        recruitment.connect(company).disburseBounty(1)
       ).to.revertedWith("90 days are not completed yet");
     });
   });
@@ -287,7 +287,7 @@ describe("Recruitment", () => {
     await hire.wait();
     const seconds = 31 * 24 * 60 * 60 * 3;
     await ethers.provider.send("evm_increaseTime", [seconds]);
-    await recruitment.connect(company).diburseBounty(1);
+    await recruitment.connect(company).disburseBounty(1);
     const referrerBal = await frontDoorToken.balanceOf(referrer.address);
     await recruitment.connect(referrer).claimBounty();
     expect(await frontDoorToken.balanceOf(referrer.address)).gt(referrerBal);
