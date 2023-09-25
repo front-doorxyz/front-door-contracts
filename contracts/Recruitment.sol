@@ -42,7 +42,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
     mapping(uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
 
-    mappint(adress=>uint256) public bountyClaim;
+    mapping(address=>uint256) public bountyClaim;
 
     // Company address  to  candiate address  gives score to company
     mapping(address => mapping(address => uint256))
@@ -369,10 +369,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
         uint256 _jobId
     ) public view returns (FrontDoorStructs.Candidate memory) {
         return jobCandidatehire[_jobId];
-    };
+    }
 
     /// diburseBounty
-    /// @param _jobId
+    /// @param _jobId Job id
     /// @dev diburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern 
     function diburseBounty(
         uint256 _jobId
@@ -402,7 +402,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         emit BountyDiburse(_jobId);
     }
     /// diburseBounty
-    /// @dev claime a dibursed bounty
+    /// @dev claim dibursed bounty
     function claimBounty() external nonReentrant {
         uint256 bounty = bountyClaim[msg.sender];
         require(bounty > 0, "No bounty to claim");
