@@ -42,6 +42,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
     mapping(uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
 
+    mappint(adress=>uint256) public bountyClaim;
 
     // Company address  to  candiate address  gives score to company
     mapping(address => mapping(address => uint256))
@@ -363,13 +364,16 @@ contract Recruitment is Ownable, ReentrancyGuard {
     ) public view returns (bool) {
         return candidateList[_candidateAddress].isHired;
     }
-
+    
     function getCandidateHiredJobId(
         uint256 _jobId
     ) public view returns (FrontDoorStructs.Candidate memory) {
         return jobCandidatehire[_jobId];
-    }
+    };
 
+    /// diburseBounty
+    /// @param _jobId
+    /// @dev diburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern 
     function diburseBounty(
         uint256 _jobId
     ) external nonReentrant checkIfItisACompany(msg.sender) {
@@ -382,8 +386,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
             jobList[_jobId].isDibursed == false,
             "Bounty is already dibursed"
         );
-        // commented for test purposes
-        //require(jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp, "90 days are not completed yet");
+        require(jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp, "90 days are not completed yet");
         require(
             jobList[_jobId].creator == msg.sender,
             "Only job creator can diburse"
@@ -391,32 +394,23 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
         jobList[_jobId].isDibursed = true;
         uint256 bounty = jobList[_jobId].bounty;
-        frontDoorToken.approve(
-            jobCandidatehire[_jobId].referrer,
-            (bounty * 6500) / 10_000
-        ); // asking user for approval to transfer bounty  to referrer
-        frontDoorToken.approve(
-            jobCandidatehire[_jobId].wallet,
-            (bounty * 1000) / 10_000
-        ); // asking user for approval to transfer bounty  to candidate
-    frontDoorToken.approve(
-            frontDoorAddress,
-            (bounty * 2500) / 10_000
-        ); // asking user for approval to transfer bounty  to Front Door
-        frontDoorToken.transfer(
-            jobCandidatehire[_jobId].referrer,
-            (bounty * 6500) / 10_000
-        ); // asking user for approval to transfer bounty  to referrer
-        frontDoorToken.transfer(
-            jobCandidatehire[_jobId].wallet,
-            (bounty * 1000) / 10_000
-        ); // asking user for approval to transfer bounty  to candidate
-        frontDoorToken.transfer(
-            frontDoorAddress,
-            (bounty * 2500) / 10_000
-        ); // asking user for approval to transfer bounty  to Front Door
+
+        bountyClaim[jobCandidatehire[_jobId].referrer] = bountyClaim[jobCandidatehire[_jobId].referrer] + (bounty * 6500) / 10_000;
+        bountyClaim[jobCandidatehire[_jobId].wallet] = bountyClaim[jobCandidatehire[_jobId].wallet] + (bounty * 1000) / 10_000;
+        bountyClaim[frontDoorAddress] = bountyClaim[frontDoorAddress] + (bounty * 2500) / 10_000;
+    
+        emit BountyDiburse(_jobId);
+    }
+    /// diburseBounty
+    /// @dev claime a dibursed bounty
+    function claimBounty() external nonReentrant {
+        uint256 bounty = bountyClaim[msg.sender];
+        require(bounty > 0, "No bounty to claim");
+        bountyClaim[msg.sender] = 0;
+        frontDoorToken.transfer(msg.sender, bounty);
     }
 
+    event BountyDiburse(uint256 _jobId);
     event PercentagesCompleted(
         address indexed sender,
         uint8 month1RefundPct,
