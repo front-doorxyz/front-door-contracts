@@ -109,7 +109,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
      * @notice Register a Referrer with email
      * @param email email of the referee
      */
-    function registerReferrer(string memory email) external {
+    function registerReferrer(bytes32 email) external {
         FrontDoorStructs.Referrer memory referrer = FrontDoorStructs.Referrer(
             msg.sender,
             email,
@@ -188,12 +188,12 @@ contract Recruitment is Ownable, ReentrancyGuard {
      */
     function registerReferral(
         uint256 jobId,
-        string memory refereeMail
+        bytes32  refereeMail
     ) external nonReentrant returns (uint256) {
         // Simple Checks Of Parameters
         require(jobId > 0, "Job Id should be greater than 0"); // check if job is registered or not
         require(
-            bytes(refereeMail).length > 0,
+            refereeMail.length > 0,
             "Referee Mail should not be empty"
         ); // check if referee mail is empty or not
 
@@ -458,7 +458,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         uint256 jobId
     );
     event RegisterReferral(
-        string indexed email,
+        bytes32 indexed email,
         address indexed refferer,
         uint256 indexed jobId,
         uint256 referralId

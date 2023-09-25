@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("hardhat-gas-reporter");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -15,5 +16,8 @@ module.exports = {
     hardhat: {
       initialBaseFeePerGas: 0
     }
+  },
+  gasReporter: {
+    enabled: true,
   }
 };
