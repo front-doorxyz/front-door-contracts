@@ -24,6 +24,15 @@ error SameCandidateCannotBeReferredTwice();
 error NotEnoughFundDepositedByCompany();
 error InvalidMonth();
 
+// Register a company, publish a job 
+// Register a a cadidate
+// Register a a referrer
+// referrer can refer a candidate
+// company can hire a candidate
+// company can pay bounty to hire a candidate
+ 
+ 
+
 contract Recruitment is Ownable, ReentrancyGuard {
     // =============    Defining Mapping        ==================
     mapping(address => uint256) public companyaccountBalances;
