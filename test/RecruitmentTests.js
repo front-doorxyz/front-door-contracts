@@ -266,7 +266,6 @@ describe("Recruitment", () => {
     await frontDoorToken.connect(company).approve(recruitment.target, bounty);
     const jobId = await recruitment.connect(company).registerJob(bounty);
     const receipt = await jobId.wait();
-
     const email =ethers.encodeBytes32String("john.doe@mail.com");
     await recruitment.connect(referrer).registerReferrer(email);
     const referrerData = await recruitment.getReferrer(referrer.address);
