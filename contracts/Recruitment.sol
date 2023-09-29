@@ -20,7 +20,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
   mapping(address => FrontDoorStructs.Referrer) public referrerList;
   mapping(address => FrontDoorStructs.Company) public companyList;
   mapping(uint256 => FrontDoorStructs.Job) public jobList;
-  mapping(address => uint256[]) public referralIndex;
+  mapping(address => uint16[]) public referralIndex;
   mapping(uint256 => FrontDoorStructs.Referral) public referralList;
   mapping(address => FrontDoorStructs.ReferralScore[]) public referralScores;
   address[] public companiesAddressList; // list of address of company
@@ -66,7 +66,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
   modifier checkIfCandidateHiredByCompany(address candidateAddress, address companyAddress) {
     bool isCandidateHired = false;
     address[] memory hiredCandidates = companyAddressToHiredCandidateAddress[companyAddress];
-    for (uint256 i = 0; i < hiredCandidates.length; i++) {
+    for (uint16 i = 0; i < hiredCandidates.length; i++) {
       if (hiredCandidates[i] == candidateAddress) {
         isCandidateHired = true;
         break;
@@ -99,7 +99,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
    * @param bounty amount paid by compnay to hire candidate
    */
   function registerJob(uint256 bounty) external payable nonReentrant checkIfItisACompany(msg.sender) returns (uint256) {
-    uint256 jobId = jobIdCounter;
+    uint16 jobId = jobIdCounter;
     require(bounty > 0, "Bounty should be greater than 0"); // check if company is giving bounty or not
     FrontDoorStructs.Job memory job = FrontDoorStructs.Job(jobId, bounty, false, msg.sender, false, 0, block.timestamp,false);
     jobList[jobId] = job;
