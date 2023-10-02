@@ -1,0 +1,151 @@
+
+
+Compiled 2 Solidity files successfully
+
+  Recruitment
+    ✓ Register a job (no callstatic), company account balance should increase
+    ✓ Retrieve all jobs from company, should retreive 2 jobs
+    ✓ Retrieve all jobs when no job is created
+    Initial deploy
+      ✓ Owner in contract should be the deployer
+    Register Company
+      ✓ Register company
+      ✓ Register a job failed with no allowance
+      ✓ Register a job
+    Register Referrer
+
+      1) Register referrer
+
+      2) Register referree with same email
+    Register Referral
+
+      3) Register referral
+
+      4) Refer a candidate and apply for a job
+
+      5) Cannot diburse if timelock did not expired
+    Claim bounties
+
+      6) Cannot claim bounty if nothing is to claim
+
+·--------------------------------------|---------------------------|--------------|-----------------------------·
+|         [90mSolc version: 0.8.18[39m         ·  [90mOptimizer enabled: true[39m  ·  [90mRuns: 1000[39m  ·  [90mBlock limit: 30000000 gas[39m  │
+·······································|···························|··············|······························
+|  [32m[1mMethods[22m[39m                                                                                                      │
+···················|···················|·············|·············|··············|···············|··············
+|  [1mContract[22m        ·  [1mMethod[22m           ·  [32mMin[39m        ·  [32mMax[39m        ·  [32mAvg[39m         ·  [1m# calls[22m      ·  [1musd (avg)[22m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [90mFNDR_Faucet[39m     ·  requestTokens    ·          -  ·          -  ·       99332  ·            [90m1[39m  ·          [32m[90m-[32m[39m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [90mFrontDoorToken[39m  ·  approve          ·          -  ·          -  ·       46280  ·            [90m8[39m  ·          [32m[90m-[32m[39m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [90mFrontDoorToken[39m  ·  setFaucet        ·          -  ·          -  ·       71193  ·            [90m1[39m  ·          [32m[90m-[32m[39m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [90mRecruitment[39m     ·  registerCompany  ·          -  ·          -  ·      116985  ·           [90m10[39m  ·          [32m[90m-[32m[39m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [90mRecruitment[39m     ·  registerJob      ·     [36m163995[39m  ·     [31m235195[39m  ·      226295  ·           [90m16[39m  ·          [32m[90m-[32m[39m  │
+···················|···················|·············|·············|··············|···············|··············
+|  [32m[1mDeployments[22m[39m                         ·                                          ·  [1m% of limit[22m   ·             │
+·······································|·············|·············|··············|···············|··············
+|  FNDR_Faucet                         ·          -  ·          -  ·      343165  ·        [90m1.1 %[39m  ·          [32m[90m-[32m[39m  │
+·······································|·············|·············|··············|···············|··············
+|  FrontDoorToken                      ·          -  ·          -  ·     1207825  ·          [90m4 %[39m  ·          [32m[90m-[32m[39m  │
+·······································|·············|·············|··············|···············|··············
+|  Recruitment                         ·          -  ·          -  ·     2998199  ·         [90m10 %[39m  ·          [32m[90m-[32m[39m  │
+·--------------------------------------|-------------|-------------|--------------|---------------|-------------·
+
+  7 passing (1s)
+  6 failing
+
+  1) Recruitment
+       Register Referrer
+         Register referrer:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+  2) Recruitment
+       Register Referrer
+         Register referree with same email:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+  3) Recruitment
+       Register Referral
+         Register referral:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+  4) Recruitment
+       Register Referral
+         Refer a candidate and apply for a job:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+  5) Recruitment
+       Register Referral
+         Cannot diburse if timelock did not expired:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+  6) Recruitment
+       Claim bounties
+         Cannot claim bounty if nothing is to claim:
+     TypeError: invalid BytesLike value (argument="value", value="john.doe@mail.com", code=INVALID_ARGUMENT, version=6.7.1)
+      at makeError (node_modules/ethers/src.ts/utils/errors.ts:678:21)
+      at assert (node_modules/ethers/src.ts/utils/errors.ts:702:25)
+      at assertArgument (node_modules/ethers/src.ts/utils/errors.ts:714:5)
+      at _getBytes (node_modules/ethers/src.ts/utils/data.ts:44:19)
+      at getBytesCopy (node_modules/ethers/src.ts/utils/data.ts:66:12)
+      at FixedBytesCoder.encode (node_modules/ethers/src.ts/abi/coders/fixed-bytes.ts:29:32)
+      at /Users/fribas/Projects/front-door/front-door-contracts/node_modules/ethers/src.ts/abi/coders/array.ts:64:19
+      at Array.forEach (<anonymous>)
+      at pack (node_modules/ethers/src.ts/abi/coders/array.ts:47:12)
+      at TupleCoder.encode (node_modules/ethers/src.ts/abi/coders/tuple.ts:62:20)
+
+
+
