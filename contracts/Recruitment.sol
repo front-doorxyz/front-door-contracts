@@ -19,33 +19,32 @@ contract Recruitment is Ownable, ReentrancyGuard {
   mapping(address => FrontDoorStructs.Candidate) public candidateList;
   mapping(address => FrontDoorStructs.Referrer) public referrerList;
   mapping(address => FrontDoorStructs.Company) public companyList;
-  mapping(uint256 => FrontDoorStructs.Job) public jobList;
+  mapping(uint16 => FrontDoorStructs.Job) public jobList;
   mapping(address => uint16[]) public referralIndex;
-  mapping(uint256 => FrontDoorStructs.Referral) public referralList;
+  mapping(uint16 => FrontDoorStructs.Referral) public referralList;
   mapping(address => FrontDoorStructs.ReferralScore[]) public referralScores;
   address[] public companiesAddressList; // list of address of company
   mapping(address => FrontDoorStructs.CompanyScore[]) public companyScores;
   mapping(address => mapping(address => bool)) public hasScoredCompany; //allows only to score once
   mapping(address => bool) public isCompany; // check if company is registered or not
-
-  mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
-  mapping (uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
+  mapping(uint16 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
+  mapping (uint16 => FrontDoorStructs.Candidate) public jobCandidatehire;
 
 
   address acceptedTokenAddress;
 
   // Company address  to  candiate address  gives score to company
-  mapping(address => mapping(address => uint256)) public companyaddressToScore;
-
+  mapping(address => mapping(address => uint16))public companyaddressToScore;
+ 
   //  Company address  to candidate address  to score giving By company
-  mapping(address => mapping(address => uint256)) public companyAddressToCandidateScore;
+  mapping(address => mapping(address => uint16)) public companyAddressToCandidateScore;
 
   // Company address  to candidate address  hired by company
   mapping(address => address[]) public companyAddressToHiredCandidateAddress;
 
   //  Counters
-  uint256 private jobIdCounter = 1;
-  uint256 private referralCounter = 1;
+  uint16 private jobIdCounter = 1;
+  uint16 private referralCounter = 1;
 
   address frontDoorAddress;
   // Constructor
@@ -76,8 +75,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
     if (isCandidateHired == false) {
       revert Errors.CandidateNotHiredByCompany();
     }
-    _;
-  }
+    
+  }_;
 
   //   Register Functions
 
@@ -98,7 +97,9 @@ contract Recruitment is Ownable, ReentrancyGuard {
   /**
    * @param bounty amount paid by compnay to hire candidate
    */
-  function registerJob(uint256 bounty) external payable nonReentrant checkIfItisACompany(msg.sender) returns (uint256) {
+
+  function registerJob(uint256 bounty) external payable nonReentrant checkIfItisACompany(msg.sender) returns (uint16) {
+
     uint16 jobId = jobIdCounter;
     require(bounty > 0, "Bounty should be greater than 0"); // check if company is giving bounty or not
     FrontDoorStructs.Job memory job = FrontDoorStructs.Job(jobId, bounty, false, msg.sender, false, 0, block.timestamp,false);
@@ -136,7 +137,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
    * @param jobId The job ID already registered with the contract.
    * @param refereeMail The email of the referee.
    */
-  function registerReferral(uint256 jobId, string memory refereeMail) external nonReentrant returns (uint256){
+  function registerReferral(uint16 jobId, string memory refereeMail) external nonReentrant returns (uint16){
     // Simple Checks Of Parameters
     require(jobId > 0, "Job Id should be greater than 0"); // check if job is registered or not
     require(bytes(refereeMail).length > 0, "Referee Mail should not be empty"); // check if referee mail is empty or not
@@ -159,15 +160,15 @@ contract Recruitment is Ownable, ReentrancyGuard {
       false,
       block.timestamp + 1 days
     );
-    referralIndex[msg.sender].push(referralCounter);
-    referralList[referralCounter] = referral;
-    uint256 referralId = referralCounter;
+    referralIndex[msg.sender].push(referralCl;
+    uint16 referralId = rounter);
+    referralList[referralCounter] = referraeferralCounter;
     referralCounter++;
     emit RegisterReferral(refereeMail, msg.sender, jobId, referralId);
     return referralId;
   }
   
-  function confirmReferral(uint256 _referralCounter, uint256 _jobId) external nonReentrant {
+  function confirmReferral(uint16 _referralCounter, uint16 _jobId) external nonReentrant {
     // Some Checks
     require(referralList[_referralCounter].isConfirmed == false, "Referral is already confirmed"); // check if referral is already confirmed or not
     require(referralList[_referralCounter].job.issucceed == false, "Job is already succeed"); // check if job is already succeed or not
@@ -195,7 +196,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
    */
   function hireCandidate(
     address _candidateAddress,
-    uint256 _jobId
+    uint16 _jobId
   ) external nonReentrant checkIfItisACompany(msg.sender) {
     // Some Checks
     require(candidateList[_candidateAddress].isHired == false, "Candidate is already hired"); // check if candidate is already hired or not
@@ -231,10 +232,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
   }
 
   function getAllJobsOfCompany(address companyWallet) external view returns (FrontDoorStructs.Job[] memory) {
-    uint256 jobsFetched = 0;
+    uint16 jobsFetched = 0;
 
     // Count the number of jobs for the company
-    for (uint256 i = 1; i < jobIdCounter; i++) {
+    for (uint16 i = 1; i < jobIdCounter; i++) {
       if (jobList[i].creator == companyWallet && !jobList[i].isRemoved) {
         jobsFetched++;
       }
@@ -242,10 +243,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     // Initialize the memory array
     FrontDoorStructs.Job[] memory jobArray = new FrontDoorStructs.Job[](jobsFetched);
-    uint256 index = 0;
+    uint16 index = 0;
 
     // Populate the memory array with jobs
-    for (uint256 i = 1; i < jobIdCounter; i++) {
+    for (uint16 i = 1; i < jobIdCounter; i++) {
       if (jobList[i].creator == companyWallet && !jobList[i].isRemoved) {
         FrontDoorStructs.Job storage currentJob = jobList[i];
         jobArray[index] = currentJob;
@@ -256,12 +257,12 @@ contract Recruitment is Ownable, ReentrancyGuard {
     return jobArray;
   }
   /// Returns the numbers of refferals that a refferer has made 
-  function getMyRefferals() public view returns ( uint256[] memory){
+  function getMyRefferals() public view returns ( uint16[] memory){
     return referralIndex[msg.sender];
   }
   
   //TODO  validate if sender is the company that created the job
-  function getCandidateListForJob (uint256 _jobId) public view returns( FrontDoorStructs.Candidate[] memory){
+  function getCandidateListForJob (uint16 _jobId) public view returns( FrontDoorStructs.Candidate[] memory){
     return candidateListForJob[_jobId];
   }
 
@@ -269,12 +270,12 @@ contract Recruitment is Ownable, ReentrancyGuard {
     return candidateList[_candidateAddress].isHired;
   }
 
-  function getCandidateHiredJobId(uint256 _jobId) public view returns(FrontDoorStructs.Candidate memory){
+  function getCandidateHiredJobId(uint16 _jobId) public view returns(FrontDoorStructs.Candidate memory){
     return jobCandidatehire[_jobId];
   }
 
 
-  function diburseBounty(uint256 _jobId) external nonReentrant checkIfItisACompany(msg.sender){
+  function diburseBounty(uint16 _jobId) external nonReentrant checkIfItisACompany(msg.sender){
     require(jobList[_jobId].issucceed == true, "Job is not succeed yet");
     require(jobList[_jobId].numberOfCandidateHired > 0, "No candidate is hired yet");
     require(jobList[_jobId].isDibursed == false, "Bounty is already dibursed");
@@ -290,11 +291,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
     ERC20(acceptedTokenAddress).transfer(jobCandidatehire[_jobId].referrer, bounty * 6500 / 10_000); // asking user for approval to transfer bounty  to referrer
     ERC20(acceptedTokenAddress).transfer(jobCandidatehire[_jobId].wallet, bounty * 1000 / 10_000); // asking user for approval to transfer bounty  to candidate
     ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000); // asking user for approval to transfer bounty  to Front Door
-    
-    
-    
-  
-
   }
   event PercentagesCompleted(
     address indexed sender,
@@ -302,15 +298,15 @@ contract Recruitment is Ownable, ReentrancyGuard {
     uint8 month2RefundPct,
     uint8 month3RefundPct
   );
-  event DepositCompleted(address indexed sender, uint256 amount, uint256 jobId);
-  event ReferralScoreSubmitted(address senderAddress, address referrerWallet, uint256 score);
-  event CompanyScoreSubmitted(address senderAddress, address companyAddress, uint256 score);
-  event ReferCandidateSuccess(address indexed sender, address indexed candidateAddress, uint256 indexed jobId);
-  event CandidateHired(address indexed companyAddress, address candidateAddress, uint256 jobId);
-  event ReferralConfirmed(address indexed candidateAddress, uint256 indexed referralId, uint256 indexed jobId);
-  event ReferralRejected(address indexed candidateAddress, uint256 indexed referralId, uint256 indexed jobId);
-  event CandidateHiredSuccesfullyAfter90Days(address indexed companyAddress, address candidateAddress, uint256 jobId);
-  event RegisterReferral(string indexed email, address indexed refferer, uint256 indexed jobId, uint256 referralId);
-  event JobCreated(address indexed companyAddress, uint256 indexed jobId);
+  event DepositCompleted(address indexed sender, uint256 amount, uint16 jobId);
+  event ReferralScoreSubmitted(address senderAddress, address referrerWallet, uint16 score);
+  event CompanyScoreSubmitted(address senderAddress, address companyAddress, uint16 score);
+  event ReferCandidateSuccess(address indexed sender, address indexed candidateAddress, uint16 indexed jobId);
+  event CandidateHired(address indexed companyAddress, address candidateAddress, uint16 jobId);
+  event ReferralConfirmed(address indexed candidateAddress, uint16 indexed referralId, uint16 indexed jobId);
+  event ReferralRejected(address indexed candidateAddress, uint16 indexed referralId, uint16 indexed jobId);
+  event CandidateHiredSuccesfullyAfter90Days(address indexed companyAddress, address candidateAddress, uint16 jobId);
+  event RegisterReferral(string indexed email, address indexed refferer, uint16 indexed jobId, uint16 referralId);
+  event JobCreated(address indexed companyAddress, uint16 indexed jobId);
 
 }
