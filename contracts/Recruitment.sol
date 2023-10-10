@@ -65,8 +65,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(address => address[]) public companyAddressToHiredCandidateAddress;
 
     //  Counters
-    uint256 private jobIdCounter = 1;
-    uint256 private referralCounter = 1;
+    uint16 private jobIdCounter = 1;
+    uint16 private referralCounter = 1;
 
     address frontDoorAddress;
 
@@ -138,20 +138,22 @@ contract Recruitment is Ownable, ReentrancyGuard {
         payable
         nonReentrant
         checkIfItisACompany(msg.sender)
-        returns (uint256)
+        returns (uint16)
     {
-        uint256 jobId = jobIdCounter;
+        uint16 jobId = jobIdCounter;
         require(bounty > 0, "Bounty should be greater than 0"); // check if company is giving bounty or not
         FrontDoorStructs.Job memory job = FrontDoorStructs.Job(
-            jobId,
-            bounty,
-            false,
             msg.sender,
-            false,
+            bounty,
+            uint40(block.timestamp),
             0,
-            block.timestamp,
+            jobId,
+            false,
+            false,
             false
         );
+
+
         jobList[jobId] = job;
         jobIdCounter++;
         companyList[msg.sender].jobsCreated++;
@@ -214,15 +216,14 @@ contract Recruitment is Ownable, ReentrancyGuard {
         candidate.referrer = msg.sender;
 
         FrontDoorStructs.Referral memory referral = FrontDoorStructs.Referral(
-            referralCounter,
-            false,
             referrer,
             candidate,
             job,
-            block.timestamp,
-            0,
+            uint40(block.timestamp),
+            uint40(block.timestamp + 1 days),
+            referralCounter,
             false,
-            block.timestamp + 1 days
+            false
         );
         referralIndex[msg.sender].push(referralCounter);
         referralList[referralCounter] = referral;
@@ -291,7 +292,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
         // Code Logic
         candidateList[_candidateAddress].isHired = true;
-        candidateList[_candidateAddress].timeOfHiring = block.timestamp;
+        candidateList[_candidateAddress].timeOfHiring = uint40(block.timestamp);
         jobList[_jobId].numberOfCandidateHired += 1;
         jobList[_jobId].issucceed = true;
         jobCandidatehire[_jobId] = candidateList[_candidateAddress];
