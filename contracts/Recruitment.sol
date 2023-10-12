@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
-//Enable the optimizer
+
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -14,284 +13,248 @@ import {Errors} from "./Errors.sol";
 
 
 contract Recruitment is Ownable, ReentrancyGuard {
-  // =============    Defining Mapping        ==================
-  mapping(address => uint256) public companyaccountBalances;
-  mapping(address => FrontDoorStructs.Candidate) public candidateList;
-  mapping(address => FrontDoorStructs.Referrer) public referrerList;
-  mapping(address => FrontDoorStructs.Company) public companyList;
-  mapping(uint16 => FrontDoorStructs.Job) public jobList;
-  mapping(address => uint16[]) public referralIndex;
-  mapping(uint16 => FrontDoorStructs.Referral) public referralList;
-  mapping(address => FrontDoorStructs.ReferralScore[]) public referralScores;
-  address[] public companiesAddressList; // list of address of company
-  mapping(address => FrontDoorStructs.CompanyScore[]) public companyScores;
-  mapping(address => mapping(address => bool)) public hasScoredCompany; //allows only to score once
-  mapping(address => bool) public isCompany; // check if company is registered or not
-  mapping(uint16 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
-  mapping (uint16 => FrontDoorStructs.Candidate) public jobCandidatehire;
 
+  mapping(address => FrontDoorStructs.Candidate) public candidateList;
+  mapping(address => FrontDoorStructs.Recruiter) public RecruiterList;
+  mapping(address => FrontDoorStructs.Company) public companyList;
+  mapping(string => address) private getAddressFromMail;
+  mapping(uint16 => FrontDoorStructs.Job) public jobList;
+  mapping(uint16 => FrontDoorStructs.Referral) public referralList;
+  address[] public companies;
+  address[] public candidates;
+  address[] public recruiters;
 
   address acceptedTokenAddress;
-
-  // Company address  to  candiate address  gives score to company
-  mapping(address => mapping(address => uint16))public companyaddressToScore;
- 
-  //  Company address  to candidate address  to score giving By company
-  mapping(address => mapping(address => uint16)) public companyAddressToCandidateScore;
-
-  // Company address  to candidate address  hired by company
-  mapping(address => address[]) public companyAddressToHiredCandidateAddress;
-
-  //  Counters
+  address frontDoorAddress;
   uint16 private jobIdCounter = 1;
   uint16 private referralCounter = 1;
 
-  address frontDoorAddress;
-  // Constructor
   constructor(address _acceptedTokenAddress, address _frontDoorAddress) {
     acceptedTokenAddress = _acceptedTokenAddress;
     frontDoorAddress = _frontDoorAddress;
   }
 
-  /**
-   * @param _address company address
-   * @dev Checks whether the address of Company is in CompanyList or not
-   */
   modifier checkIfItisACompany(address _address) {
     require(isCompanyRegistered(_address), "Company is not registered yet");
-    _;
   }
 
   modifier checkIfCandidateHiredByCompany(address candidateAddress, address companyAddress) 
   {
-    bool isCandidateHired = false;
-    address[] memory hiredCandidates = companyAddressToHiredCandidateAddress[companyAddress];
-    for (uint16 i = 0; i < hiredCandidates.length; i++) {
-      if (hiredCandidates[i] == candidateAddress) {
-        isCandidateHired = true;
-        break;
-      }
-    }
-
-    if (isCandidateHired == false) {
-      revert Errors.CandidateNotHiredByCompany();
-    }
-    _;
+    require(candidateList(candidateAddress).isHired, 'Candidate is not hired yet');
   }
 
-  //   Register Functions
-
-
-  function isCompanyRegistered(address _company) view public returns (bool) {
-    return isCompany[_company];
+  modifier isCompanyRegistered(address _company) {
+    require(companyList(_company).wallet,'Company is not Registered');
   }
-
-  /**
-   * @notice Register a Referrer with email
-   * @param email email of the referee
-   */
-  function registerReferrer(string memory email) external {
-    FrontDoorStructs.Referrer memory referrer = FrontDoorStructs.Referrer(msg.sender, email, 0, 0);
-    referrerList[msg.sender] = referrer;
+  function isAlreadyReferred(uint jobId, string mail) public view return(bool)
+  {
+    require(getAddressFromMail(mail), 'No candidate found');
+    for(uint i=0;i<jobList[jobId].referredCandidates.length;i++)
+      if(jobList[jobId].referredCandidates[i].email == mail) return true;
+    return false;
   }
-
-  /**
-   * @param bounty amount paid by compnay to hire candidate
-   */
+  function registerRecruiter(string memory email) external {
+    FrontDoorStructs.Recruiter memory recruiter = FrontDoorStructs.Recruiter(msg.sender, email, 0, 0, 0);
+    recruiterList[msg.sender]=recruiter;
+  }
 
   function registerJob(uint256 bounty) external payable nonReentrant checkIfItisACompany(msg.sender) returns (uint16) {
-
+    require(bounty > 0, "Bounty should be greater than 0");
     uint16 jobId = jobIdCounter;
-    require(bounty > 0, "Bounty should be greater than 0"); // check if company is giving bounty or not
-    FrontDoorStructs.Job memory job = FrontDoorStructs.Job(jobId, bounty, false, msg.sender, false, 0,uint40(block.timestamp),false);
+    FrontDoorStructs.Job memory job = FrontDoorStructs.Job(jobId, bounty, msg.sender, uint40(block.timestamp) ,new address[](0) ,new address[](0) ,false ,false ,false);
     jobList[jobId] = job;
     jobIdCounter++;
-    companyList[msg.sender].jobsCreated++;
-
-    // implement  company to pay the bounty upfront
-    ERC20(acceptedTokenAddress).approve(address(this), bounty); // asking user for approval to transfer bounty
-
+    companyList[msg.sender].jobs.push(job);
+    ERC20(acceptedTokenAddress).approve(address(this), bounty);
     bool success = ERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), bounty);
-
     if (!success) {
       revert Errors.BountyNotPaid();
     }
-
-    companyaccountBalances[msg.sender] += bounty;
+    companyList[msg.sender].ballance += bounty;
     emit DepositCompleted(msg.sender, bounty, jobId);
     emit JobCreated(msg.sender, jobId);
     return jobId;
   }
 
-  /**
-   * @notice Registers a Company
-   */
   function registerCompany() external {
     FrontDoorStructs.Company memory company = FrontDoorStructs.Company(msg.sender, 0, 0, new address[](0));
     companyList[msg.sender] = company;
-    companiesAddressList.push(msg.sender);
-    isCompany[msg.sender] = true;
+    companies.push(msg.sender);
   }
 
-  /**
-   * @notice Registers a referral
-   * @param jobId The job ID already registered with the contract.
-   * @param refereeMail The email of the referee.
-   */
-  function registerReferral(uint16 jobId, string memory refereeMail) external nonReentrant returns (uint16){
-    // Simple Checks Of Parameters
-    require(jobId > 0, "Job Id should be greater than 0"); // check if job is registered or not
-    require(bytes(refereeMail).length > 0, "Referee Mail should not be empty"); // check if referee mail is empty or not
-
-    FrontDoorStructs.Candidate memory candidate;
-    FrontDoorStructs.Referrer memory referrer = referrerList[msg.sender];
+  function registerReferral(uint16 jobId, string memory candidateEMail) external nonReentrant returns (uint16){
+    require(jobId > 0, "Job Id should be greater than 0");
+    require(bytes(candidateEMail).length > 0, "Referee Mail should not be empty");
+    if(!isAlreadyReferred(jobId,candidateEMail)) return;
+    
+    int referId = referralCounter++;
+    candidateList[getAddressFromMail[candidateEMail]].refers.push(referId);
+    FrontDoorStructs.Candidate memory candidate = candidateList[getAddressFromMail[candidateEMail]];
     FrontDoorStructs.Job memory job = jobList[jobId];
-
-    candidate.email = refereeMail;
-    candidate.referrer = msg.sender;
+    if(!isAlreadyReferred(jobId,candidateEMail)) job.referredCandidates.push(candidate.address);
 
     FrontDoorStructs.Referral memory referral = FrontDoorStructs.Referral(
+      referId,
       referralCounter,
       false,
-      referrer,
+      false,
+      0,
       candidate,
       job,
       uint40(block.timestamp),
       0,
-      false,
-      uint40( block.timestamp + 1 days)
+      msg.sender
     );
-    referralIndex[msg.sender].push(referralCounter);
-    referralList[referralCounter] = referral;
-    uint16 referralId = referralCounter;
-    referralCounter++;
-    emit RegisterReferral(refereeMail, msg.sender, jobId, referralId);
+    recruiterList[msg.sender].refers.push(referId);
+    emit RegisterReferral(candidateEMail, msg.sender, jobId, referralId);
     return referralId;
   }
   
   function confirmReferral(uint16 _referralCounter, uint16 _jobId) external nonReentrant {
-    // Some Checks
-    require(referralList[_referralCounter].isConfirmed == false, "Referral is already confirmed"); // check if referral is already confirmed or not
-    require(referralList[_referralCounter].job.issucceed == false, "Job is already succeed"); // check if job is already succeed or not
-    require(referralList[_referralCounter].job.timeAtWhichJobCreated + 30 days > block.timestamp, "Job is expired"); // check if job is expired or not
-    require(referralList[_referralCounter].candidate.isHired == false, "Candidate is already hired"); // check if candidate is hired
-    require(referralList[_referralCounter].referralEnd > block.timestamp, "Referral is expired"); // check if referral is expired or not
+    require(referralList[_referralCounter].isConfirmed == false, "Referral is already confirmed");
+    require(referralList[_referralCounter].job.issucceed == false, "Job is already succeed");
+    require(referralList[_referralCounter].job.timeOfJobCreated + 30 days > block.timestamp, "Job is expired");
+    require(referralList[_referralCounter].candidate.isHired == false, "Candidate is already hired");
+    require(referralList[_referralCounter].timeOfRefer + 7 days > block.timestamp, "Referral is expired");
 
-    // Code Logic
+    candidateList[msg.sender].referConfirmed = true;
     referralList[_referralCounter].isConfirmed = true;
-    referralList[_referralCounter].candidate.wallet = msg.sender;
-    candidateList[msg.sender] =  referralList[_referralCounter].candidate;
+    referralList[_referralCounter].candidate.wallet = msg.sender;    
+    jobList[jobId].refers.push(referralList[_referralCounter].id);
+    jobList[jobId].numberOfReferrals++;
 
-    emit ReferralConfirmed(msg.sender, _referralCounter, _jobId); // emit event
-
-    // push into a mapping jobsid => candidates
-
-    candidateListForJob[_jobId].push(referralList[_referralCounter].candidate);
-
+    emit ReferralConfirmed(msg.sender, _referralCounter, _jobId);
   }
 
-  /**
-   * @param _candidateAddress Candidate address
-   * @param _jobId job id
-   * @notice Simply sets isHired to true for the candidate , sets timestamp of hiring and incurease candidate count on that job
-   */
+
   function hireCandidate(
     address _candidateAddress,
     uint16 _jobId
   ) external nonReentrant checkIfItisACompany(msg.sender) {
-    // Some Checks
     require(candidateList[_candidateAddress].isHired == false, "Candidate is already hired"); // check if candidate is already hired or not
     require(jobList[_jobId].issucceed == false, "Job is already succeed"); // check if job is already succeed or not
 
-    // Code Logic
     candidateList[_candidateAddress].isHired = true;
     candidateList[_candidateAddress].timeOfHiring = uint40(block.timestamp);
-    jobList[_jobId].numberOfCandidateHired += 1;
-    jobList[_jobId].issucceed = true;
-    jobCandidatehire[_jobId] = candidateList[_candidateAddress];
-    // if ((companyaccountBalances[msg.sender]) >= (jobList[_jobId].bounty * jobList[_jobId].numberOfCandidateHired)) {
-    //   revert Errors.NotEnoughFundDepositedByCompany();
-    // }
+    jobList[_jobId].hiredCandidate=_candidateAddress;
 
-    emit CandidateHired(msg.sender, _candidateAddress, _jobId); // emit event
+    emit CandidateHired(msg.sender, _candidateAddress, _jobId);
   }
 
   function getCandidate(address wallet) external view returns (FrontDoorStructs.Candidate memory) {
     return candidateList[wallet];
   }
 
-  function getReferrer(address wallet) external view returns (FrontDoorStructs.Referrer memory) {
-    return referrerList[wallet];
+  function getRecruiter(address wallet) external view returns (FrontDoorStructs.Referrer memory) {
+    return recruiterList[wallet];
   }
 
-  function getReferralScores(address referrerWallet) public view returns (FrontDoorStructs.ReferralScore[] memory) {
-    return referralScores[referrerWallet];
+  function getRecruiterScore(address wallet) public view returns (uint16) {
+    return recruiterList[wallet].score.finalScore;
   }
 
-  function getCompanyScores(address companyAddress) public view returns (FrontDoorStructs.CompanyScore[] memory) {
-    return companyScores[companyAddress];
+  function getCompanyScore(address companyAddress) public view returns (uint16) {
+    return companyList[companyAddress].score.finalScore;
   }
 
   function getAllJobsOfCompany(address companyWallet) external view returns (FrontDoorStructs.Job[] memory) {
-    uint16 jobsFetched = 0;
-
-    // Count the number of jobs for the company
-    for (uint16 i = 1; i < jobIdCounter; i++) {
-      if (jobList[i].creator == companyWallet && !jobList[i].isRemoved) {
-        jobsFetched++;
-      }
-    }
-
-    // Initialize the memory array
-    FrontDoorStructs.Job[] memory jobArray = new FrontDoorStructs.Job[](jobsFetched);
-    uint16 index = 0;
-
-    // Populate the memory array with jobs
-    for (uint16 i = 1; i < jobIdCounter; i++) {
-      if (jobList[i].creator == companyWallet && !jobList[i].isRemoved) {
-        FrontDoorStructs.Job storage currentJob = jobList[i];
-        jobArray[index] = currentJob;
-        index++;
-      }
-    }
-
-    return jobArray;
+    return companyList[companyWallet].jobs;
   }
-  /// Returns the numbers of refferals that a refferer has made 
+
   function getMyRefferals() public view returns ( uint16[] memory){
-    return referralIndex[msg.sender];
+    return recuriterList[msg.sender].refers;
   }
   
   //TODO  validate if sender is the company that created the job
-  function getCandidateListForJob (uint16 _jobId) public view returns( FrontDoorStructs.Candidate[] memory){
-    return candidateListForJob[_jobId];
+  function getCandidateListForJob (uint16 _jobId) public view returns(string[]){
+    string[] candidates;
+    for(uint i=0;i<jobList[_jobId].refers.length;i++)
+      candidates.push(jobList[_jobId].refers.candidate.email);
+    return candidates;
   }
 
   function candidateStatus(address _candidateAddress) public view returns(bool){
     return candidateList[_candidateAddress].isHired;
   }
 
-  function getCandidateHiredJobId(uint16 _jobId) public view returns(FrontDoorStructs.Candidate memory){
-    return jobCandidatehire[_jobId];
+  function getCandidateHiredJobId(uint16 _jobId) public view returns(string){
+    return jobList[_jobId].hiredCandidate.email;
   }
 
-
+  function getCurrentRefer(uint16 _jobId) internal returns(Referral)
+  {
+    for(uint i=0;i<jobList[_jobId].hiredCandidate.refers.length;i++)
+      if(_jobId == jobList[_jobId].hiredCandidate.refers[i].job.id) return jobList[_jobId].hiredCandidate.refers[i];
+    return 0;
+  }
+  
   function diburseBounty(uint16 _jobId) external nonReentrant checkIfItisACompany(msg.sender){
     require(jobList[_jobId].issucceed == true, "Job is not succeed yet");
     require(jobList[_jobId].numberOfCandidateHired > 0, "No candidate is hired yet");
     require(jobList[_jobId].isDibursed == false, "Bounty is already dibursed");
-    // commented for test purposes 
-    //require(jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp, "90 days are not completed yet");
     require(jobList[_jobId].creator == msg.sender, "Only job creator can diburse");
 
     jobList[_jobId].isDibursed = true;
     uint256 bounty = jobList[_jobId].bounty;
-    ERC20(acceptedTokenAddress).approve(jobCandidatehire[_jobId].referrer, bounty * 6500 / 10_000); // asking user for approval to transfer bounty  to referrer
-    ERC20(acceptedTokenAddress).approve(jobCandidatehire[_jobId].wallet, bounty * 1000 / 10_000); // asking user for approval to transfer bounty  to candidate
-    ERC20(acceptedTokenAddress).approve(frontDoorAddress, bounty * 2500 / 10_000); // asking user for approval to transfer bounty  to Front Door
-    ERC20(acceptedTokenAddress).transfer(jobCandidatehire[_jobId].referrer, bounty * 6500 / 10_000); // asking user for approval to transfer bounty  to referrer
-    ERC20(acceptedTokenAddress).transfer(jobCandidatehire[_jobId].wallet, bounty * 1000 / 10_000); // asking user for approval to transfer bounty  to candidate
-    ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000); // asking user for approval to transfer bounty  to Front Door
+    Referral currentRefer = getCurrentRefer();
+    ERC20(acceptedTokenAddress).approve(currentRefer.owner, bounty * 6500 / 10_000);
+    ERC20(acceptedTokenAddress).approve(jobList[_jobId].hiredCandidate, bounty * 1000 / 10_000);
+    ERC20(acceptedTokenAddress).approve(frontDoorAddress, bounty * 2500 / 10_000);
+    ERC20(acceptedTokenAddress).transfer(currentRefer.owner, bounty * 6500 / 10_000);
+    ERC20(acceptedTokenAddress).transfer(jobList[_jobId].hiredCandidate, bounty * 1000 / 10_000);
+    ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000);
+  }
+
+  function updateFinalScore(address userAddress, uint kind) internal
+  {
+    switch(kind)
+    {
+      case 0: {
+        int[] weight={10,8,7};
+        int index=0,sum=0,div=0;
+        while(companyList[userAddress].score.scores[index])
+        {
+          int w=index>2?5:weight[index];
+          div+=w;
+          sum+=companyList[userAddress].score.scores[index++]*w*20;
+        }
+        companyList[userAddress].score.finalScore=sum/div;
+      }
+      case 1: {
+        int sum=0,count=0 ;
+        for(uint i=0;i<recruiterList[userAddress].refers.length;i++)
+        {
+          if(recruiterList[userAddress].refers)
+          sum+=recruiterList[userAddress].refers.scores[index++];
+        }
+        referrerList[userAddress].score.finalScore=(double)sum/div*;
+      }
+      case 2: {
+        int index=0,sum=0,div=0;
+        while(referrerList[userAddress].score.scores[index])
+        {
+          int w=index>2?5:weight[index];
+          div+=w;
+          sum+=referrerList[userAddress].score.scores[index++]*w*20;
+        }
+        referrerList[userAddress].score.finalScore=sum/div;
+      }
+    }
+  }
+  function setScore(Address userAddress, uint kind, uint score) {
+    switch(kind)
+    {
+      case 0: {
+        companyList[userAddress].score.scores.push(score);
+        companyList[userAddress].score.finalScore=getFinalScore(userAddress,kind);
+        break;
+      }
+      case 2: {
+        candidateList[userAddress].score.scores.push(score);
+        candidateList[userAddress].score.finalScore=getFinalScore(userAddress,kind);
+        break;
+      }
+    }
   }
   event PercentagesCompleted(
     address indexed sender,
