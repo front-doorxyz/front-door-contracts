@@ -51,7 +51,7 @@ library FrontDoorStructs {
         address wallet;
         uint256 ballance;
         Score score;
-        Job[] jobs;
+        uint16[] jobIds;
     }
 
     struct Score {

@@ -59,6 +59,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
       refers: new uint16[](0)
     });
     recruiterList[msg.sender] = recruiter;
+    recruiters.push(msg.sender);
   }
 
   function registerJob(uint256 bounty) external payable nonReentrant returns (uint16) {
@@ -77,7 +78,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     });
     jobList[jobId] = job;
     jobIdCounter++;
-    companyList[msg.sender].jobs.push(job);
+    companyList[msg.sender].jobIds.push(jobId);
     ERC20(acceptedTokenAddress).approve(address(this), bounty);
     bool success = ERC20(acceptedTokenAddress).transferFrom(msg.sender, address(this), bounty);
     if (!success) {
@@ -98,7 +99,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
             senderAddress: new address[](0),
             finalScore: 0
         }),
-        jobs: new FrontDoorStructs.Job[](0)
+        jobIds: new uint16[](0)
     });
     companyList[msg.sender] = company;
     companies.push(msg.sender);
@@ -128,6 +129,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         timeOfConfirmed: 0,
         owner: msg.sender
       });
+      referralList[referId] = referral;
       recruiterList[msg.sender].refers.push(referId);
       emit RegisterReferral(candidateEMail, msg.sender, jobId, referId);
       return referId;
@@ -183,10 +185,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
     return companyList[companyAddress].score.finalScore;
   }
 
-  function getAllJobsOfCompany(address companyWallet) external view returns (FrontDoorStructs.Job[] memory) {
-    return companyList[companyWallet].jobs;
-  }
-
   function getMyRefferals() public view returns ( uint16[] memory){
     return recruiterList[msg.sender].refers;
   }
@@ -207,6 +205,9 @@ contract Recruitment is Ownable, ReentrancyGuard {
     return candidateList[jobList[_jobId].hiredCandidate].email;
   }
 
+  function getCompanyJobs(address _companyAddress) public view returns (uint16[] memory) {
+    return companyList[_companyAddress].jobIds;
+  }
   function getCurrentRefer(uint16 _jobId) internal returns(FrontDoorStructs.Referral memory) {
     for(uint i=0;i<candidateList[jobList[_jobId].hiredCandidate].refers.length;i++)
       if(_jobId == referralList[candidateList[jobList[_jobId].hiredCandidate].refers[i]].job.id) return referralList[candidateList[jobList[_jobId].hiredCandidate].refers[i]];
@@ -228,7 +229,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     ERC20(acceptedTokenAddress).transfer(jobList[_jobId].hiredCandidate, bounty * 1000 / 10_000);
     ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000);
   }
-  function updateFinalScore(address userAddress, uint kind) internal  returns(uint256) {
+  function updateFinalScore(address userAddress, uint kind) private returns (uint256) {
     if(kind == 0) {
       uint8[3] memory weight=[10,8,7];
       uint16 sum=0;
