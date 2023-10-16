@@ -37,9 +37,6 @@ module.exports = {
       accounts: [DEPLOYER_PRIVATE_KEY],
     },
   },
-  gasReporter: {
-    enabled: true,
-  },
   etherscan: {
     apiKey: {
       sepolia: ETHERSCAN_API_KEY,

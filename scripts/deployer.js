@@ -9,7 +9,7 @@ const hre = require("hardhat");
 async function main() {
   const frontDoorWallet = "0xb29bd8e0E273843AaA92BEAC6DbE0EC788e1852f";
 
-  const fndrToken = await hre.ethers.deployContract("FrontDoorToken", []);
+  const fndrToken = await hre.ethers.deployContract("FrontDoorToken",[]);
   await fndrToken.waitForDeployment();
   const fndrTokenAddress = fndrToken.target;
   console.log("Deploying Contracts...");
