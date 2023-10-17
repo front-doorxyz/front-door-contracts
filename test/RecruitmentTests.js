@@ -4,6 +4,7 @@ const {
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { v4: uuidv4, parse: uuidParse } = require("uuid");
 
 describe("Recruitment", () => {
   const fixture = async () => {
@@ -153,8 +154,15 @@ describe("Recruitment", () => {
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.getReferrer(referrer.address);
       expect(referrerData.email).to.equal(email);
-      const emailReferral = ethers.encodeBytes32String("referralemail@mail.com");
-      await recruitment.connect(referrer).registerReferral(1, emailReferral);
+      const emailReferral = ethers.encodeBytes32String(
+        "referralemail@mail.com"
+      );
+      const uuid = uuidv4().replaceAll("-", "");
+      const uuidBytes = ethers.toUtf8Bytes(uuid);
+
+      await recruitment
+        .connect(referrer)
+        .registerReferral(1, emailReferral, uuidBytes);
       const jobs = await recruitment.getAllJobsOfCompany(company.address);
     });
     it("Refer a candidate and apply for a job", async () => {
@@ -168,18 +176,22 @@ describe("Recruitment", () => {
       const jobId = await recruitment.connect(company).registerJob(bounty);
       const receipt = await jobId.wait();
 
-      const email =ethers.encodeBytes32String("john.doe@mail.com");
+      const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.getReferrer(referrer.address);
       expect(referrerData.email).to.equal(email);
-      const emailReferral =ethers.encodeBytes32String("referralemail@mail.com");
+      const emailReferral = ethers.encodeBytes32String(
+        "referralemail@mail.com"
+      );
+      const uuid = uuidv4().replaceAll("-", "");
+      const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral);
+        .registerReferral(1, emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
-        .confirmReferral(1, 1);
+        .confirmReferral(1, 1,uuidBytes);
       const data2 = await jobsReffers.wait();
       const candadidatesForJob = await recruitment.getCandidateListForJob(1);
       const hire = await recruitment
@@ -201,18 +213,22 @@ describe("Recruitment", () => {
       const jobId = await recruitment.connect(company).registerJob(bounty);
       const receipt = await jobId.wait();
 
-      const email =ethers.encodeBytes32String("john.doe@mail.com");
+      const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.getReferrer(referrer.address);
       expect(referrerData.email).to.equal(email);
-      const emailReferral =ethers.encodeBytes32String("referralemail@mail.com");
+      const emailReferral = ethers.encodeBytes32String(
+        "referralemail@mail.com"
+      );
+      const uuid = uuidv4().replaceAll("-", "");
+      const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral);
+        .registerReferral(1, emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
-        .confirmReferral(1, 1);
+        .confirmReferral(1, 1,uuidBytes);
       const data2 = await jobsReffers.wait();
       const candadidatesForJob = await recruitment.getCandidateListForJob(1);
       const hire = await recruitment
@@ -239,14 +255,18 @@ describe("Recruitment", () => {
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.getReferrer(referrer.address);
       expect(referrerData.email).to.equal(email);
-      const emailReferral = ethers.encodeBytes32String("referralemail@mail.com");
+      const emailReferral = ethers.encodeBytes32String(
+        "referralemail@mail.com"
+      );
+      const uuid = uuidv4().replaceAll("-", "");
+      const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral);
+        .registerReferral(1, emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
-        .confirmReferral(1, 1);
+        .confirmReferral(1, 1, uuidBytes);
       const data2 = await jobsReffers.wait();
       const candadidatesForJob = await recruitment.getCandidateListForJob(1);
       const hire = await recruitment
@@ -258,42 +278,46 @@ describe("Recruitment", () => {
     });
     it("Rewarded can claim their rewards", async () => {
       const { frontDoorToken, recruitment, company, referrer, referree } =
-      await loadFixture(fixture);
-    await recruitment.connect(company).registerCompany();
-    const companyStruct = await recruitment.companyList(company.address);
-    expect(company.address).to.equal(companyStruct.wallet);
-    const bounty = ethers.parseEther("100");
-    await frontDoorToken.connect(company).approve(recruitment.target, bounty);
-    const jobId = await recruitment.connect(company).registerJob(bounty);
-    const receipt = await jobId.wait();
-    const email =ethers.encodeBytes32String("john.doe@mail.com");
-    await recruitment.connect(referrer).registerReferrer(email);
-    const referrerData = await recruitment.getReferrer(referrer.address);
-    expect(referrerData.email).to.equal(email);
-    const emailReferral =ethers.encodeBytes32String("referralemail@mail.com");
-    const tx = await recruitment
-      .connect(referrer)
-      .registerReferral(1, emailReferral);
-    await tx.wait();
-    const jobsReffers = await recruitment
-      .connect(referree)
-      .confirmReferral(1, 1);
-    const data2 = await jobsReffers.wait();
-    const candadidatesForJob = await recruitment.getCandidateListForJob(1);
-    const hire = await recruitment
-      .connect(company)
-      .hireCandidate(referree.address, 1);
-    await hire.wait();
-    const seconds = 31 * 24 * 60 * 60 * 3;
-    await ethers.provider.send("evm_increaseTime", [seconds]);
-    await recruitment.connect(company).disburseBounty(1);
-    const referrerBal = await frontDoorToken.balanceOf(referrer.address);
-    await recruitment.connect(referrer).claimBounty();
-    expect(await frontDoorToken.balanceOf(referrer.address)).gt(referrerBal);
-    const referreeBal = await frontDoorToken.balanceOf(referree.address);
-    await recruitment.connect(referree).claimBounty();
-    expect(await frontDoorToken.balanceOf(referree.address)).gt(referreeBal);
-  });
-  
+        await loadFixture(fixture);
+      await recruitment.connect(company).registerCompany();
+      const companyStruct = await recruitment.companyList(company.address);
+      expect(company.address).to.equal(companyStruct.wallet);
+      const bounty = ethers.parseEther("100");
+      await frontDoorToken.connect(company).approve(recruitment.target, bounty);
+      const jobId = await recruitment.connect(company).registerJob(bounty);
+      const receipt = await jobId.wait();
+      const email = ethers.encodeBytes32String("john.doe@mail.com");
+      await recruitment.connect(referrer).registerReferrer(email);
+      const referrerData = await recruitment.getReferrer(referrer.address);
+      expect(referrerData.email).to.equal(email);
+      const emailReferral = ethers.encodeBytes32String(
+        "referralemail@mail.com"
+      );
+      const uuid = uuidv4().replaceAll("-", "");
+      const uuidBytes = ethers.toUtf8Bytes(uuid);
+
+      const tx = await recruitment
+        .connect(referrer)
+        .registerReferral(1, emailReferral, uuidBytes);
+      await tx.wait();
+      const jobsReffers = await recruitment
+        .connect(referree)
+        .confirmReferral(1, 1, uuidBytes);
+      const data2 = await jobsReffers.wait();
+      const candadidatesForJob = await recruitment.getCandidateListForJob(1);
+      const hire = await recruitment
+        .connect(company)
+        .hireCandidate(referree.address, 1);
+      await hire.wait();
+      const seconds = 31 * 24 * 60 * 60 * 3;
+      await ethers.provider.send("evm_increaseTime", [seconds]);
+      await recruitment.connect(company).disburseBounty(1);
+      const referrerBal = await frontDoorToken.balanceOf(referrer.address);
+      await recruitment.connect(referrer).claimBounty();
+      expect(await frontDoorToken.balanceOf(referrer.address)).gt(referrerBal);
+      const referreeBal = await frontDoorToken.balanceOf(referree.address);
+      await recruitment.connect(referree).claimBounty();
+      expect(await frontDoorToken.balanceOf(referree.address)).gt(referreeBal);
+    });
   });
 });
