@@ -239,6 +239,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
         return referralId;
     }
 
+    /// @notice Allows the referral to confirm that accepts the referral to the job
+    /// @param _referralCounter id of the referral
+    /// @param _jobId job id that the candite is referred for
+    /// @param _referralCode referral code of the referral
     function confirmReferral(
         uint256 _referralCounter,
         uint256 _jobId,
