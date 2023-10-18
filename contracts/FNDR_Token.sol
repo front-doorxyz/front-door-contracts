@@ -8,7 +8,6 @@ contract FrontDoorToken is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     address public faucet;
   
-
     constructor() ERC20("FrontDoorToken", "FDT") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);

@@ -4,22 +4,20 @@ library FrontDoorStructs {
 
     struct Candidate {
         address wallet;
-        string email;
         Score score;
-        uint40 timeOfHiring;
         bool isHired;
-        bool referConfirmed;
         uint256 earnedMount;
         uint16[] refers;
+        uint40 timeOfRegist;
     }
 
      struct Recruiter{
         address wallet;
-        string email;
         Score score;
         uint16 numberOfSuccesfullReferrals;
         uint16 numberOfContactedCandidates;
         uint16[] refers;
+        uint40 timeOfRegist;
     }
 
     struct Job {
@@ -31,7 +29,8 @@ library FrontDoorStructs {
         bool isRemoved;
         bool isSucceed;
         uint16[] refers;
-        address hiredCandidate;
+        uint16[] hiredRefers;
+        uint40[] timeOfCandidateHire;
     }
 
     struct Referral{
@@ -39,11 +38,11 @@ library FrontDoorStructs {
         bool isConfirmed;
         bool isSucceed;
         uint16 score;
-        Candidate candidate;
-        Job job;
-        uint40 timeOfRefer;
-        uint40 timeOfConfirmed;
+        address candidate;
+        uint16 job;
         address owner;
+        uint40 timeAtWhichReferralStarted;
+        uint40 timeReferralEnd;
     }
 
 
@@ -52,12 +51,18 @@ library FrontDoorStructs {
         uint256 ballance;
         Score score;
         uint16[] jobIds;
+        uint40 timeOfRegist;
     }
 
     struct Score {
         uint16[] scores;
         address[] senderAddress;
+        uint40[] timeOfGetScore;
         uint256 finalScore;
     }
-    
+    struct ReferralCode {
+        bytes32 code;
+        uint16 expirationDate;
+        bool isUsed;
+    }
 }
