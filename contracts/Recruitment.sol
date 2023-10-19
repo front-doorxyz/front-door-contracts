@@ -208,6 +208,9 @@ contract Recruitment is Ownable, ReentrancyGuard {
   function getCompanyScore(address companyAddress) public view returns (uint256) {
     return companyList[companyAddress].score.finalScore;
   }
+  function getCandidateScore(address candidateAddress) public view returns (uint256) {
+    return candidateList[candidateAddress].score.finalScore;
+  }
 
   function getMyRefferals() public view returns ( uint16[] memory){
     return recruiterList[msg.sender].refers;
@@ -226,8 +229,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
   }
 
   function getHiredCandidatesByJobId(uint16 _jobId) public view returns (address[] memory) {
-    address[] storage hiredCandidates;
-      for(uint i=0;i<jobList[_jobId].hiredRefers.length;i++) hiredCandidates.push(referralList[jobList[_jobId].hiredRefers[i]].candidate);
+    address[] memory hiredCandidates = new address[](jobList[_jobId].hiredRefers.length); // Initialize the array with the correct size
+    for (uint i = 0; i < jobList[_jobId].hiredRefers.length; i++) {
+        hiredCandidates[i] = referralList[jobList[_jobId].hiredRefers[i]].candidate;
+    }
     return hiredCandidates;
   }
 
@@ -244,18 +249,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
     jobList[_jobId].isDibursed = true;
     uint256 bounty = jobList[_jobId].bounty;
 
-    // bountyClaim[jobCandidatehire[_jobId].referrer] =
-    //         bountyClaim[jobCandidatehire[_jobId].referrer] +
-    //         (bounty * 6500) /
-    //         10_000;
-    //     bountyClaim[jobCandidatehire[_jobId].wallet] =
-    //         bountyClaim[jobCandidatehire[_jobId].wallet] +
-    //         (bounty * 1000) /
-    //         10_000;
-    //     bountyClaim[frontDoorAddress] =
-    //         bountyClaim[frontDoorAddress] +
-    //         (bounty * 2500) /
-    //         10_000;
 
     uint hiredCounts = jobList[_jobId].hiredRefers.length;
     for(uint i=0;i<hiredCounts;i++)
@@ -264,9 +257,21 @@ contract Recruitment is Ownable, ReentrancyGuard {
       ERC20(acceptedTokenAddress).approve(currentRefer.owner, bounty * 6500 / 10_000 / hiredCounts);
       ERC20(acceptedTokenAddress).approve(currentRefer.candidate, bounty * 1000 / 10_000 / hiredCounts);
       ERC20(acceptedTokenAddress).approve(frontDoorAddress, bounty * 2500 / 10_000 / hiredCounts);
-      ERC20(acceptedTokenAddress).transfer(currentRefer.owner, bounty * 6500 / 10_000 / hiredCounts);
-      ERC20(acceptedTokenAddress).transfer(currentRefer.candidate, bounty * 1000 / 10_000 / hiredCounts);
-      ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000 / hiredCounts);
+      bool successOwner = ERC20(acceptedTokenAddress).transfer(currentRefer.owner, bounty * 6500 / 10_000 / hiredCounts);
+      bool successCandidate = ERC20(acceptedTokenAddress).transfer(currentRefer.candidate, bounty * 1000 / 10_000 / hiredCounts);
+      bool successFrontDoor = ERC20(acceptedTokenAddress).transfer(frontDoorAddress, bounty * 2500 / 10_000 / hiredCounts);
+ 
+      if (successOwner) {
+        bountyClaim[currentRefer.owner] += (bounty * 6500) / 10_000 / hiredCounts;
+      }
+
+      if (successCandidate) {
+        bountyClaim[currentRefer.candidate] += (bounty * 1000) / 10_000 / hiredCounts;
+      }
+
+      if (successFrontDoor) {
+        bountyClaim[frontDoorAddress] += (bounty * 2500) / 10_000 / hiredCounts;
+      }
     }
   }
   function updateFinalScore(address userAddress, uint kind) private returns (uint256) {
