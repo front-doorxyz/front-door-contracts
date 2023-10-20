@@ -16,7 +16,7 @@ describe("Recruitment", () => {
     await frontDoorToken.waitForDeployment();
     const frontDoorTokenAddress = frontDoorToken.target;
 
-    const tkns = ethers.parseEther("100000");
+    const tkns = ethers.parseEther("750");
     await frontDoorToken.transfer(company.getAddress(), tkns);
     await frontDoorToken.transfer(referrer.getAddress(), tkns);
     await frontDoorToken.transfer(referree.getAddress(), tkns);
@@ -41,14 +41,14 @@ describe("Recruitment", () => {
   describe("Register Company", () => {
     it("Register company", async () => {
       const { recruitment, company } = await loadFixture(fixture);
-      await recruitment.connect(company).registerCompany();
+      await recruitment.connect(company).registerAsCompany();
       const companyStruct = await recruitment.companyList(company.address);
       expect(company.address).to.equal(companyStruct.wallet);
     });
 
     it("Register a job failed with no allowance", async () => {
       const { recruitment, company } = await loadFixture(fixture);
-      await recruitment.connect(company).registerCompany();
+      await recruitment.connect(company).registerAsCompany();
       const companyStruct = await recruitment.companyList(company.address);
       expect(company.address).to.equal(companyStruct.wallet);
 
@@ -68,7 +68,7 @@ describe("Recruitment", () => {
 
     it("Register a job", async () => {
       const { frontDoorToken, recruitment, company } = await loadFixture(fixture);
-      await recruitment.connect(company).registerCompany();
+      await recruitment.connect(company).registerAsCompany();
       const companyStruct = await recruitment.companyList(company.address);
       expect(company.address).to.equal(companyStruct.wallet);
 
@@ -84,7 +84,7 @@ describe("Recruitment", () => {
 
   it("Register a job (no callstatic), company account balance should increase", async () => {
     const { frontDoorToken, recruitment, company } = await loadFixture(fixture);
-    await recruitment.connect(company).registerCompany();
+    await recruitment.connect(company).registerAsCompany();
     const companyStruct = await recruitment.companyList(company.address);
     expect(company.address).to.equal(companyStruct.wallet);
 
@@ -100,7 +100,7 @@ describe("Recruitment", () => {
 
   it("Retrieve all jobs from company, should retrieve 2 jobs", async () => {
     const { frontDoorToken, recruitment, company } = await loadFixture(fixture);
-    await recruitment.connect(company).registerCompany();
+    await recruitment.connect(company).registerAsCompany();
     const companyStruct = await recruitment.companyList(company.address);
     expect(company.address).to.equal(companyStruct.wallet);
 
@@ -126,7 +126,7 @@ describe("Recruitment", () => {
 
   it("Retrieve all jobs when no job is created", async () => {
     const { recruitment, company } = await loadFixture(fixture);
-    await recruitment.connect(company).registerCompany();
+    await recruitment.connect(company).registerAsCompany();
     const companyStruct = await recruitment.companyList(company.address);
     expect(company.address).to.equal(companyStruct.wallet);
 
