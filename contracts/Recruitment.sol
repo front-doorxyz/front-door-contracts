@@ -11,7 +11,6 @@ import "hardhat/console.sol";
 
 import {FrontDoorStructs} from "./DataModel.sol";
 
-
 error OnlyRefererAllowed();
 error SenderIsNotReferee();
 error OnlyJobCreatorAllowedToDelete();
@@ -24,14 +23,12 @@ error SameCandidateCannotBeReferredTwice();
 error NotEnoughFundDepositedByCompany();
 error InvalidMonth();
 
-// Register a company, publish a job 
+// Register a company, publish a job
 // Register a a cadidate
 // Register a a referrer
 // referrer can refer a candidate
 // company can hire a candidate
 // company can pay bounty to hire a candidate
- 
- 
 
 contract Recruitment is Ownable, ReentrancyGuard {
     // =============    Defining Mapping        ==================
@@ -51,7 +48,11 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
     mapping(uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
 
-    mapping(address=>uint256) public bountyClaim;
+    mapping(address => uint256) public bountyClaim;
+
+    mapping(uint16 => bytes32) public JobIdtoTeferralCodeList;
+    mapping(bytes32 => uint16) public referralCodeToJobId;
+    mapping(bytes32 => FrontDoorStructs.ReferralCode) public referralCodeList;
 
     // Company address  to  candiate address  gives score to company
     mapping(address => mapping(address => uint256))
@@ -71,6 +72,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     address frontDoorAddress;
 
     IERC20 public frontDoorToken;
+
     // Constructor
     constructor(address _acceptedTokenAddress, address _frontDoorAddress) {
         frontDoorToken = IERC20(_acceptedTokenAddress);
@@ -129,7 +131,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @param bounty amount paid by compnay to hire candidate
+     * @param bounty amount paid by company to hire candidate
      */
     function registerJob(
         uint256 bounty
@@ -153,13 +155,12 @@ contract Recruitment is Ownable, ReentrancyGuard {
             false
         );
 
-
         jobList[jobId] = job;
         jobIdCounter++;
         companyList[msg.sender].jobsCreated++;
 
         // implement  company to pay the bounty upfront
-       frontDoorToken.approve(address(this), bounty); // asking user for approval to transfer bounty
+        frontDoorToken.approve(address(this), bounty); // asking user for approval to transfer bounty
 
         bool success = frontDoorToken.transferFrom(
             msg.sender,
@@ -196,17 +197,21 @@ contract Recruitment is Ownable, ReentrancyGuard {
      * @notice Registers a referral
      * @param jobId The job ID already registered with the contract.
      * @param refereeMail The email of the referee.
+     * @param referralCode The referral code of the referee, it must be unique and hashed.
      */
     function registerReferral(
         uint256 jobId,
-        bytes32  refereeMail
+        bytes32 refereeMail,
+        bytes32 referralCode
     ) external nonReentrant returns (uint256) {
         // Simple Checks Of Parameters
         require(jobId > 0, "Job Id should be greater than 0"); // check if job is registered or not
+        require(refereeMail.length > 0, "Referee Mail should not be empty"); // check if referee mail is empty or not
+        require(referralCode.length > 0, "Referral Code should not be empty"); // check if referral code is empty or not
         require(
-            refereeMail.length > 0,
-            "Referee Mail should not be empty"
-        ); // check if referee mail is empty or not
+            referralCodeToJobId[referralCode] == 0,
+            "Referral Code should be unique"
+        ); // check if referral code is unique or not
 
         FrontDoorStructs.Candidate memory candidate;
         FrontDoorStructs.Referrer memory referrer = referrerList[msg.sender];
@@ -214,15 +219,16 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
         candidate.email = refereeMail;
         candidate.referrer = msg.sender;
+        referralCodeToJobId[referralCode] = uint16(jobId);
 
         FrontDoorStructs.Referral memory referral = FrontDoorStructs.Referral(
             referrer,
             candidate,
             job,
+            referralCode,
             uint40(block.timestamp),
-            uint40(block.timestamp + 1 days),
+            uint40(block.timestamp + 2 weeks),
             referralCounter,
-            false,
             false
         );
         referralIndex[msg.sender].push(referralCounter);
@@ -233,9 +239,14 @@ contract Recruitment is Ownable, ReentrancyGuard {
         return referralId;
     }
 
+    /// @notice Allows the referral to confirm that accepts the referral to the job
+    /// @param _referralCounter id of the referral
+    /// @param _jobId job id that the candite is referred for
+    /// @param _referralCode referral code of the referral
     function confirmReferral(
         uint256 _referralCounter,
-        uint256 _jobId
+        uint256 _jobId,
+        bytes32 _referralCode
     ) external nonReentrant {
         // Some Checks
         require(
@@ -259,6 +270,14 @@ contract Recruitment is Ownable, ReentrancyGuard {
             referralList[_referralCounter].referralEnd > block.timestamp,
             "Referral is expired"
         ); // check if referral is expired or not
+        require(
+            referralCodeToJobId[_referralCode] == _jobId,
+            "Referral code is not valid for job id"
+        );
+        require(
+            referralList[_referralCounter].referralCode == _referralCode,
+            "Invalid Referral Code"
+        ); // check if referral code is valid for referral
 
         // Code Logic
         referralList[_referralCounter].isConfirmed = true;
@@ -374,7 +393,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     ) public view returns (bool) {
         return candidateList[_candidateAddress].isHired;
     }
-    
+
     function getCandidateHiredJobId(
         uint256 _jobId
     ) public view returns (FrontDoorStructs.Candidate memory) {
@@ -383,7 +402,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     /// disburseBounty
     /// @param _jobId Job id
-    /// @dev disburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern 
+    /// @dev disburse bounty to referrer, candidate and frontDoorAddress using Pull over Push pattern
     function disburseBounty(
         uint256 _jobId
     ) external nonReentrant checkIfItisACompany(msg.sender) {
@@ -396,7 +415,10 @@ contract Recruitment is Ownable, ReentrancyGuard {
             jobList[_jobId].isDisbursed == false,
             "Bounty is already disbursed"
         );
-        require(jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp, "90 days are not completed yet");
+        require(
+            jobList[_jobId].timeAtWhichJobCreated + 90 days < block.timestamp,
+            "90 days are not completed yet"
+        );
         require(
             jobList[_jobId].creator == msg.sender,
             "Only job creator can disburse"
@@ -405,12 +427,22 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobList[_jobId].isDisbursed = true;
         uint256 bounty = jobList[_jobId].bounty;
 
-        bountyClaim[jobCandidatehire[_jobId].referrer] = bountyClaim[jobCandidatehire[_jobId].referrer] + (bounty * 6500) / 10_000;
-        bountyClaim[jobCandidatehire[_jobId].wallet] = bountyClaim[jobCandidatehire[_jobId].wallet] + (bounty * 1000) / 10_000;
-        bountyClaim[frontDoorAddress] = bountyClaim[frontDoorAddress] + (bounty * 2500) / 10_000;
-    
+        bountyClaim[jobCandidatehire[_jobId].referrer] =
+            bountyClaim[jobCandidatehire[_jobId].referrer] +
+            (bounty * 6500) /
+            10_000;
+        bountyClaim[jobCandidatehire[_jobId].wallet] =
+            bountyClaim[jobCandidatehire[_jobId].wallet] +
+            (bounty * 1000) /
+            10_000;
+        bountyClaim[frontDoorAddress] =
+            bountyClaim[frontDoorAddress] +
+            (bounty * 2500) /
+            10_000;
+
         emit BountyDisburse(_jobId);
     }
+
     /// claimBounty
     /// @dev claim disbursed bounty
     function claimBounty() external nonReentrant {

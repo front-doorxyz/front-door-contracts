@@ -15,20 +15,25 @@ interface IERC20 {
     );
 
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
+
     function transfer(address to, uint256 amount) external returns (bool);
+
     function allowance(
         address owner,
         address spender
     ) external view returns (uint256);
+
     function approve(address spender, uint256 amount) external returns (bool);
+
     function transferFrom(
         address from,
         address to,
         uint256 amount
     ) external returns (bool);
-    function mint(address to, uint256 amount) external;
 
+    function mint(address to, uint256 amount) external;
 }
 
 contract FNDR_Faucet is Ownable {
@@ -46,7 +51,7 @@ contract FNDR_Faucet is Ownable {
             lastRequest[msg.sender] + 1 days < block.timestamp,
             "You can only request once per day"
         );
-        
+
         lastRequest[msg.sender] = block.timestamp;
         IERC20(FNDRAddress).mint(msg.sender, _amount);
         emit TokensTransfered(msg.sender, _amount);

@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 contract FrontDoorToken is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     address public faucet;
-  
 
     constructor() ERC20("FrontDoorToken", "FDT") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -23,7 +22,9 @@ contract FrontDoorToken is ERC20, AccessControl {
         _grantMinterRole(_faucet);
     }
 
-    function _grantMinterRole(address minter) private onlyRole(DEFAULT_ADMIN_ROLE) {
+    function _grantMinterRole(
+        address minter
+    ) private onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_ROLE, minter);
     }
 }

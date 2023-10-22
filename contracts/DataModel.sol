@@ -35,11 +35,11 @@ library FrontDoorStructs {
         Referrer referrer;
         Candidate candidate;
         Job job;
+        bytes32 referralCode;
         uint40 timeAtWhichReferralStarted; // indicates time at which referral is made
-        uint40 referralEnd; // indicates time at which referral is ending  ** Referral should end after 1 day
+        uint40 referralEnd; // indicates time at which referral is ending  ** Referral should end after 2 weeks
         uint16 id;
         bool isConfirmed; // set by candidate if we wants to confirm the referral
-        bool confirmed;
     }
 
     struct Company {
@@ -57,5 +57,11 @@ library FrontDoorStructs {
     struct ReferralScore {
         uint256 score; //Score given by the hiring company to the candidate
         address senderAddress; // Wallet address of the hiring company
+    }
+
+    struct ReferralCode {
+        bytes32 code;
+        uint16 expirationDate;
+        bool isUsed;
     }
 }
