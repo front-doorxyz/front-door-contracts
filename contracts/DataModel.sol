@@ -4,64 +4,54 @@ pragma solidity 0.8.18;
 library FrontDoorStructs {
     struct Candidate {
         address wallet;
-        bytes32 email;
         address referrer; // address of the referrer
-        uint40 timeOfHiring; // time at which candidate is hired
+        uint40 hiredTime; // time at which candidate is hired
         uint16 score;
-        bool isScoreGivenByCompany; // bool if company gives score to candidate
+        bool isScored; // bool if company gives score to candidate
         bool isHired;
         bool jobConfirmed; // bool if candidate confirms the job
+        uint16[] refers;
     }
 
     struct Referrer {
         address wallet;
-        bytes32 email;
         uint16 score;
+        uint16[] refers;
         uint16 numberOfSuccesfullReferrals; // number of referrals made by the referrer
+        uint numberOfContactedReferrals;
     }
 
     struct Job {
+        uint16 id;
         address creator;
         uint256 bounty;
-        uint40 timeAtWhichJobCreated; // indicates time at which job is created job will only be listed for 30 days
-        uint16 numberOfCandidateHired; // number of candidates hired by the company
-        uint16 id;
+        uint40 createdTime; // indicates time at which job is created job will only be listed for 30 days
+        uint16[] gotRefers;
+        uint16[] hiredRefers; // number of candidates hired by the company
         bool issucceed; // is comapny has succesfully hired the candidate
         bool isDisbursed;
         bool isRemoved;
     }
 
     struct Referral {
+        uint16 id;
         Referrer referrer;
         Candidate candidate;
         Job job;
         bytes32 referralCode;
-        uint40 timeAtWhichReferralStarted; // indicates time at which referral is made
-        uint40 referralEnd; // indicates time at which referral is ending  ** Referral should end after 2 weeks
-        uint16 id;
+        uint40 referTime; // indicates time at which referral is made
+        uint40 confirmedTime; // indicates time at which referral is ending  ** Referral should end after 2 weeks
         bool isConfirmed; // set by candidate if we wants to confirm the referral
+        bool companyToCandidate;    // candidate gave score to company?
+        bool candidateToCompany;    // company gave score to candidate?
     }
 
     struct Company {
         address wallet;
-        uint256 jobsCreated;
-        uint256 time_score;
-        address[] candidates; // list of all candidates hired by the company
-    }
-
-    struct CompanyScore {
-        uint256 score; //score given to the company
-        address senderAddress; //address of the candidate
-    }
-
-    struct ReferralScore {
-        uint256 score; //Score given by the hiring company to the candidate
-        address senderAddress; // Wallet address of the hiring company
-    }
-
-    struct ReferralCode {
-        bytes32 code;
-        uint16 expirationDate;
-        bool isUsed;
+        uint16[] job;
+        uint256 totalSpent;
+        uint16 totalHiredCandidates;
+        uint16 score;
+        bool hasScore;      //Has score from any job?
     }
 }

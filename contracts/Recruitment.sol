@@ -36,35 +36,11 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(address => FrontDoorStructs.Candidate) public candidateList;
     mapping(address => FrontDoorStructs.Referrer) public referrerList;
     mapping(address => FrontDoorStructs.Company) public companyList;
-    mapping(uint256 => FrontDoorStructs.Job) public jobList;
-    mapping(address => uint256[]) public referralIndex;
-    mapping(uint256 => FrontDoorStructs.Referral) public referralList;
-    mapping(address => FrontDoorStructs.ReferralScore[]) public referralScores;
-    address[] public companiesAddressList; // list of address of company
-    mapping(address => FrontDoorStructs.CompanyScore[]) public companyScores;
-    mapping(address => mapping(address => bool)) public hasScoredCompany; //allows only to score once
+    mapping(uint16 => FrontDoorStructs.Job) public jobList;
+    mapping(uint16 => FrontDoorStructs.Referral) public referralList;
     mapping(address => bool) public isCompany; // check if company is registered or not
 
-    mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
-    mapping(uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
-
     mapping(address => uint256) public bountyClaim;
-
-    mapping(uint16 => bytes32) public JobIdtoTeferralCodeList;
-    mapping(bytes32 => uint16) public referralCodeToJobId;
-    mapping(bytes32 => FrontDoorStructs.ReferralCode) public referralCodeList;
-
-    // Company address  to  candiate address  gives score to company
-    mapping(address => mapping(address => uint256))
-        public companyaddressToScore;
-
-    //  Company address  to candidate address  to score giving By company
-    mapping(address => mapping(address => uint256))
-        public companyAddressToCandidateScore;
-
-    // Company address  to candidate address  hired by company
-    mapping(address => address[]) public companyAddressToHiredCandidateAddress;
-
     //  Counters
     uint16 private jobIdCounter = 1;
     uint16 private referralCounter = 1;
@@ -117,13 +93,11 @@ contract Recruitment is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Register a Referrer with email
-     * @param email email of the referee
+     * @notice Register a Referrer
      */
-    function registerReferrer(bytes32 email) external {
+    function registerReferrer() external {
         FrontDoorStructs.Referrer memory referrer = FrontDoorStructs.Referrer(
             msg.sender,
-            email,
             0,
             0
         );
