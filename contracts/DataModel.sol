@@ -7,7 +7,7 @@ library FrontDoorStructs {
         bytes32 email;
         address referrer; // address of the referrer
         uint40 timeOfHiring; // time at which candidate is hired
-        uint16 score;
+        uint256 score;
         bool isScoreGivenByCompany; // bool if company gives score to candidate
         bool isHired;
         bool jobConfirmed; // bool if candidate confirms the job
@@ -16,7 +16,7 @@ library FrontDoorStructs {
     struct Referrer {
         address wallet;
         bytes32 email;
-        uint16 score;
+        uint256 score;
         uint16 numberOfSuccesfullReferrals; // number of referrals made by the referrer
     }
 
@@ -45,7 +45,7 @@ library FrontDoorStructs {
     struct Company {
         address wallet;
         uint256 jobsCreated;
-        uint256 time_score;
+        uint256 score;
         address[] candidates; // list of all candidates hired by the company
     }
 

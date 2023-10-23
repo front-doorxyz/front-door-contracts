@@ -38,6 +38,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(address => FrontDoorStructs.Company) public companyList;
     mapping(uint256 => FrontDoorStructs.Job) public jobList;
     mapping(address => uint256[]) public referralIndex;
+    mapping(address => uint256) public confirmedReferralCount;
     mapping(uint256 => FrontDoorStructs.Referral) public referralList;
     address[] public companiesAddressList; // list of address of company
 
@@ -50,8 +51,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
     mapping(uint256 => FrontDoorStructs.Candidate[]) public hiredCpandidateListForJob;
-
-    mapping(address => FrontDoorStructs.)
 
     mapping(address => uint256) public bountyClaim;
 
@@ -275,7 +274,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
             referralList[_referralCounter].referralCode == _referralCode,
             "Invalid Referral Code"
         ); // check if referral code is valid for referral
-
+        confirmedReferralCount[candidateList[msg.sender].referrer]++;
         // Code Logic
         referralList[_referralCounter].isConfirmed = true;
         referralList[_referralCounter].candidate.wallet = msg.sender;
@@ -425,7 +424,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobList[_jobId].isDisbursed = true;
         uint256 bounty = jobList[_jobId].bounty;
 
-        int hiredCount = hiredCpandidateListForJob[_jobId].length;
+        uint hiredCount = hiredCpandidateListForJob[_jobId].length;
         for(uint i = 0 ; i < hiredCount ; i++) {
           bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] =
               bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] +
@@ -455,68 +454,61 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     function setCanidateScoreFromCompany(address candidateAddress, uint256 score) public {
         require(isCompany[msg.sender] == true , "You can't give score to candidate");
-        FrontDoorStructs.UserScore newScore = FrontDoorStructs.UserScore {
+        FrontDoorStructs.UserScore memory newScore = FrontDoorStructs.UserScore (
           score,
           msg.sender
-        };
+        );
         candidateScores[candidateAddress].push(newScore);
         referralScores[candidateList[candidateAddress].referrer].push(newScore);
         updateCandidateScore(candidateAddress);
         updateReferrerScore(candidateList[candidateAddress].referrer);
     }
-    function setCompanyScoreFromCandidate(address companyAddress, uint256 score) public {
-        require(referralList[referralId].candidate == msg.sender , "You can't give score to the company");
-        referralList[referralId].companyScore = score;
-        updateCompanyScore(jobList[referralList[referralId].job].creator);
+    function setCompanyScoreFromCandidate(address companyAddress, uint256 score) public checkIfCandidateHiredByCompany(msg.sender , companyAddress) {
+       FrontDoorStructs.UserScore memory newScore = FrontDoorStructs.UserScore (
+          score,
+          msg.sender
+        );
+        companyScores[companyAddress].push(newScore);
+        updateCompanyScore(companyAddress);
     }
     function updateCompanyScore(address companyAddress) internal {
-      uint16 sum=0;
-      uint16 cnt = 0;
-      for(uint i = 0 ; i < companyJobs[companyAddress].length ; i++)
-          for(uint j = 0 ; j < hiredRefers[companyJobs[companyAddress][i]].length ; j++ ){
-              sum += referralList[hiredRefers[companyJobs[companyAddress][i]][j]].companyScore;
-              cnt++;
-          }
-      companyList[companyAddress].score = sum/cnt;
+      uint256 finalScore = 0 ;
+      uint256 count = companyScores[companyAddress].length;
+      for(uint i = 0 ; i < count ; i++)
+        finalScore += companyScores[companyAddress][i].score;
+      companyList[companyAddress].score = uint256(finalScore / count);
     }
-    function updateReferrerScore(address userAddress) internal {
-        uint16 sum = 0;
-        uint i;
-        for (i = 0; i < refersOfReferrer[userAddress].length; i++) {
-            sum += referralList[refersOfReferrer[userAddress][i]].candidateScore;
-        }
-        if (i > 0) {
-            referrerList[userAddress].score = uint16(sum / i);
-        } else {
-            referrerList[userAddress].score = 0; // You can change this to any suitable default value.
-        }
+    function updateReferrerScore(address referrerAddress) internal {
+      uint256 finalScore = 0 ;
+      uint256 count = referralScores[referrerAddress].length;
+      for(uint i = 0 ; i < count ; i++)
+        finalScore += referralScores[referrerAddress][i].score;
+      referrerList[referrerAddress].score = finalScore 
+        * confirmedReferralCount[referrerAddress]
+        / referralIndex[referrerAddress].length; 
     }
-    function updateCandidateScore(address userAddress) internal {
-        uint16 sum = 0;
-        uint i;
-
-        for (i = 0; i < refersCandidatesGot[userAddress].length; i++) {
-            sum += referralList[refersCandidatesGot[userAddress][i]].candidateScore;
-        }
-
-        if (i > 0) {
-            sum = uint16(sum / i);
-        } else {
-            // Handle the case when i is 0, e.g., set a default score.
-            sum = 0; // You can change this to any suitable default value.
-        }
-
-        candidateList[userAddress].score = sum;
+    function updateCandidateScore(address candidateAddress) internal {
+      uint finalScore = 0 ;
+      uint count = candidateScores[candidateAddress].length;
+      if(count == 1) finalScore = candidateScores[candidateAddress][0].score;
+      else if(count == 2) finalScore = (candidateScores[candidateAddress][0].score*2 + candidateScores[candidateAddress][1].score*3 ) /5;
+      else {
+        for(uint i = 0 ; i < count-2 ; i++)
+          finalScore += candidateScores[candidateAddress][i].score;
+        finalScore += candidateScores[candidateAddress][count-2].score * 2;
+        finalScore += candidateScores[candidateAddress][count-1].score * 3;
+        finalScore = finalScore / (count + 3);
+      }
+    candidateList[candidateAddress].score = finalScore;
     }
-
-    function getCandidateScore(address Address) external view returns (uint16) {
-        return candidateList[Address].score;
+    function getCandidateScore(address Address) external view returns (uint256) {
+      return candidateList[Address].score;
     }
-    function getCompanySpentAmount(address Address) external view returns (uint256) {
-        return companyList[Address].totalSpent;
+    function getReferrerScore(address Address) external view returns (uint256) {
+      return referrerList[Address].score;
     }
-    function getCompanyHiredCounts(address Address) external view returns (uint16) {
-        return companyList[Address].totalHiredCandidates;
+    function getCompanyScore(address Address) external view returns (uint256) {
+      return companyList[Address].score;
     }
 
     event BountyDisburse(uint256 _jobId);
