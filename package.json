@@ -4,6 +4,7 @@
   "description": "Front Door Smart Contracts",
   "main": "index.js",
   "scripts": {
+    "deploy:hardhat": "npx hardhat run scripts/deployAllHardHat.js --network hardhat",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettierSol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'"
   },
