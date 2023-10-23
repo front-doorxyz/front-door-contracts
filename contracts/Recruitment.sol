@@ -111,7 +111,19 @@ contract Recruitment is Ownable, ReentrancyGuard {
     function isCompanyRegistered(address _company) public view returns (bool) {
         return isCompany[_company];
     }
-
+    function registerCandidate() external {
+      FrontDoorStructs.Candidate memory newCandidate = FrontDoorStructs.Candidate(
+          msg.sender,
+          0,
+          address(0),
+          0,
+          0,
+          false,
+          false,
+          false
+      );
+      candidateList[msg.sender] = newCandidate;
+    }
     /**
      * @notice Register a Referrer with email
      * @param email email of the referee
@@ -483,9 +495,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
       uint256 count = referralScores[referrerAddress].length;
       for(uint i = 0 ; i < count ; i++)
         finalScore += referralScores[referrerAddress][i].score;
-      referrerList[referrerAddress].score = finalScore 
-        * confirmedReferralCount[referrerAddress]
-        / referralIndex[referrerAddress].length; 
+      referrerList[referrerAddress].score = (finalScore * confirmedReferralCount[referrerAddress]) / referralIndex[referrerAddress].length;
     }
     function updateCandidateScore(address candidateAddress) internal {
       uint finalScore = 0 ;
@@ -499,7 +509,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         finalScore += candidateScores[candidateAddress][count-1].score * 3;
         finalScore = finalScore / (count + 3);
       }
-    candidateList[candidateAddress].score = finalScore;
+      candidateList[candidateAddress].score = finalScore;
     }
     function getCandidateScore(address Address) external view returns (uint256) {
       return candidateList[Address].score;
