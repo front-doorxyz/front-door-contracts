@@ -49,14 +49,9 @@ library FrontDoorStructs {
         address[] candidates; // list of all candidates hired by the company
     }
 
-    struct CompanyScore {
+    struct UserScore {
         uint256 score; //score given to the company
         address senderAddress; //address of the candidate
-    }
-
-    struct ReferralScore {
-        uint256 score; //Score given by the hiring company to the candidate
-        address senderAddress; // Wallet address of the hiring company
     }
 
     struct ReferralCode {

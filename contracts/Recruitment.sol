@@ -39,28 +39,25 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(uint256 => FrontDoorStructs.Job) public jobList;
     mapping(address => uint256[]) public referralIndex;
     mapping(uint256 => FrontDoorStructs.Referral) public referralList;
-    mapping(address => FrontDoorStructs.ReferralScore[]) public referralScores;
     address[] public companiesAddressList; // list of address of company
-    mapping(address => FrontDoorStructs.CompanyScore[]) public companyScores;
+
+    mapping(address => FrontDoorStructs.UserScore[]) public referralScores;
+    mapping(address => FrontDoorStructs.UserScore[]) public companyScores;
+    mapping(address => FrontDoorStructs.UserScore[]) public candidateScores;
+
     mapping(address => mapping(address => bool)) public hasScoredCompany; //allows only to score once
     mapping(address => bool) public isCompany; // check if company is registered or not
 
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
-    mapping(uint256 => FrontDoorStructs.Candidate) public jobCandidatehire;
+    mapping(uint256 => FrontDoorStructs.Candidate[]) public hiredCpandidateListForJob;
+
+    mapping(address => FrontDoorStructs.)
 
     mapping(address => uint256) public bountyClaim;
 
     mapping(uint16 => bytes32) public JobIdtoTeferralCodeList;
     mapping(bytes32 => uint16) public referralCodeToJobId;
     mapping(bytes32 => FrontDoorStructs.ReferralCode) public referralCodeList;
-
-    // Company address  to  candiate address  gives score to company
-    mapping(address => mapping(address => uint256))
-        public companyaddressToScore;
-
-    //  Company address  to candidate address  to score giving By company
-    mapping(address => mapping(address => uint256))
-        public companyAddressToCandidateScore;
 
     // Company address  to candidate address  hired by company
     mapping(address => address[]) public companyAddressToHiredCandidateAddress;
@@ -314,7 +311,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
         candidateList[_candidateAddress].timeOfHiring = uint40(block.timestamp);
         jobList[_jobId].numberOfCandidateHired += 1;
         jobList[_jobId].issucceed = true;
-        jobCandidatehire[_jobId] = candidateList[_candidateAddress];
+        hiredCpandidateListForJob[_jobId].push(candidateList[_candidateAddress]);
+        companyAddressToHiredCandidateAddress[msg.sender].push(_candidateAddress);
         // if ((companyaccountBalances[msg.sender]) >= (jobList[_jobId].bounty * jobList[_jobId].numberOfCandidateHired)) {
         //   revert Errors.NotEnoughFundDepositedByCompany();
         // }
@@ -336,13 +334,13 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     function getReferralScores(
         address referrerWallet
-    ) public view returns (FrontDoorStructs.ReferralScore[] memory) {
+    ) public view returns (FrontDoorStructs.UserScore[] memory) {
         return referralScores[referrerWallet];
     }
 
     function getCompanyScores(
         address companyAddress
-    ) public view returns (FrontDoorStructs.CompanyScore[] memory) {
+    ) public view returns (FrontDoorStructs.UserScore[] memory) {
         return companyScores[companyAddress];
     }
 
@@ -396,8 +394,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
     function getCandidateHiredJobId(
         uint256 _jobId
-    ) public view returns (FrontDoorStructs.Candidate memory) {
-        return jobCandidatehire[_jobId];
+    ) public view returns (FrontDoorStructs.Candidate[] memory) {
+        return hiredCpandidateListForJob[_jobId];
     }
 
     /// disburseBounty
@@ -427,18 +425,21 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobList[_jobId].isDisbursed = true;
         uint256 bounty = jobList[_jobId].bounty;
 
-        bountyClaim[jobCandidatehire[_jobId].referrer] =
-            bountyClaim[jobCandidatehire[_jobId].referrer] +
-            (bounty * 6500) /
-            10_000;
-        bountyClaim[jobCandidatehire[_jobId].wallet] =
-            bountyClaim[jobCandidatehire[_jobId].wallet] +
-            (bounty * 1000) /
-            10_000;
+        int hiredCount = hiredCpandidateListForJob[_jobId].length;
+        for(uint i = 0 ; i < hiredCount ; i++) {
+          bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] =
+              bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] +
+              (bounty * 6500) / hiredCount / 
+              10_000;
+          bountyClaim[hiredCpandidateListForJob[_jobId][i].wallet] =
+              bountyClaim[hiredCpandidateListForJob[_jobId][i].wallet] +
+              (bounty * 1000) / hiredCount / 
+              10_000;
+        }
         bountyClaim[frontDoorAddress] =
-            bountyClaim[frontDoorAddress] +
-            (bounty * 2500) /
-            10_000;
+          bountyClaim[frontDoorAddress] +
+          (bounty * 2500) /
+          10_000;
 
         emit BountyDisburse(_jobId);
     }
@@ -450,6 +451,72 @@ contract Recruitment is Ownable, ReentrancyGuard {
         require(bounty > 0, "No bounty to claim");
         bountyClaim[msg.sender] = 0;
         frontDoorToken.transfer(msg.sender, bounty);
+    }
+
+    function setCanidateScoreFromCompany(address candidateAddress, uint256 score) public {
+        require(isCompany[msg.sender] == true , "You can't give score to candidate");
+        FrontDoorStructs.UserScore newScore = FrontDoorStructs.UserScore {
+          score,
+          msg.sender
+        };
+        candidateScores[candidateAddress].push(newScore);
+        referralScores[candidateList[candidateAddress].referrer].push(newScore);
+        updateCandidateScore(candidateAddress);
+        updateReferrerScore(candidateList[candidateAddress].referrer);
+    }
+    function setCompanyScoreFromCandidate(address companyAddress, uint256 score) public {
+        require(referralList[referralId].candidate == msg.sender , "You can't give score to the company");
+        referralList[referralId].companyScore = score;
+        updateCompanyScore(jobList[referralList[referralId].job].creator);
+    }
+    function updateCompanyScore(address companyAddress) internal {
+      uint16 sum=0;
+      uint16 cnt = 0;
+      for(uint i = 0 ; i < companyJobs[companyAddress].length ; i++)
+          for(uint j = 0 ; j < hiredRefers[companyJobs[companyAddress][i]].length ; j++ ){
+              sum += referralList[hiredRefers[companyJobs[companyAddress][i]][j]].companyScore;
+              cnt++;
+          }
+      companyList[companyAddress].score = sum/cnt;
+    }
+    function updateReferrerScore(address userAddress) internal {
+        uint16 sum = 0;
+        uint i;
+        for (i = 0; i < refersOfReferrer[userAddress].length; i++) {
+            sum += referralList[refersOfReferrer[userAddress][i]].candidateScore;
+        }
+        if (i > 0) {
+            referrerList[userAddress].score = uint16(sum / i);
+        } else {
+            referrerList[userAddress].score = 0; // You can change this to any suitable default value.
+        }
+    }
+    function updateCandidateScore(address userAddress) internal {
+        uint16 sum = 0;
+        uint i;
+
+        for (i = 0; i < refersCandidatesGot[userAddress].length; i++) {
+            sum += referralList[refersCandidatesGot[userAddress][i]].candidateScore;
+        }
+
+        if (i > 0) {
+            sum = uint16(sum / i);
+        } else {
+            // Handle the case when i is 0, e.g., set a default score.
+            sum = 0; // You can change this to any suitable default value.
+        }
+
+        candidateList[userAddress].score = sum;
+    }
+
+    function getCandidateScore(address Address) external view returns (uint16) {
+        return candidateList[Address].score;
+    }
+    function getCompanySpentAmount(address Address) external view returns (uint256) {
+        return companyList[Address].totalSpent;
+    }
+    function getCompanyHiredCounts(address Address) external view returns (uint16) {
+        return companyList[Address].totalHiredCandidates;
     }
 
     event BountyDisburse(uint256 _jobId);
