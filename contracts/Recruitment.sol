@@ -50,7 +50,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
     mapping(address => bool) public isCompany; // check if company is registered or not
 
     mapping(uint256 => FrontDoorStructs.Candidate[]) public candidateListForJob; // list of candidates for a job
-    mapping(uint256 => FrontDoorStructs.Candidate[]) public hiredCpandidateListForJob;
+    mapping(uint256 => FrontDoorStructs.Candidate[]) public hiredCandidateListForJob;
+    mapping(address => bool) isAlreadyRegistered;
 
     mapping(address => uint256) public bountyClaim;
 
@@ -83,6 +84,11 @@ contract Recruitment is Ownable, ReentrancyGuard {
         require(isCompanyRegistered(_address), "Company is not registered yet");
         _;
     }
+    
+    modifier checkIfNewUser(address _address) {
+        require(isAlreadyRegistered(address)==false,"User already registered");
+        _;
+    }
 
     modifier checkIfCandidateHiredByCompany(
         address candidateAddress,
@@ -111,7 +117,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     function isCompanyRegistered(address _company) public view returns (bool) {
         return isCompany[_company];
     }
-    function registerCandidate() external {
+    function registerCandidate() external checkIfNewUser(msg.sender) {
       FrontDoorStructs.Candidate memory newCandidate = FrontDoorStructs.Candidate(
           msg.sender,
           0,
@@ -128,7 +134,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
      * @notice Register a Referrer with email
      * @param email email of the referee
      */
-    function registerReferrer(bytes32 email) external {
+    function registerReferrer(bytes32 email) external checkIfNewUser(msg.sender){
         FrontDoorStructs.Referrer memory referrer = FrontDoorStructs.Referrer(
             msg.sender,
             email,
@@ -141,7 +147,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     /**
      * @param bounty amount paid by company to hire candidate
      */
-    function registerJob(
+    function registerJob (
         uint256 bounty
     )
         external
@@ -189,7 +195,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     /**
      * @notice Registers a Company
      */
-    function registerCompany() external {
+    function registerCompany() external checkIfNewUser(msg.sender) {
         FrontDoorStructs.Company memory company = FrontDoorStructs.Company(
             msg.sender,
             0,
@@ -322,7 +328,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         candidateList[_candidateAddress].timeOfHiring = uint40(block.timestamp);
         jobList[_jobId].numberOfCandidateHired += 1;
         jobList[_jobId].issucceed = true;
-        hiredCpandidateListForJob[_jobId].push(candidateList[_candidateAddress]);
+        hiredCandidateListForJob[_jobId].push(candidateList[_candidateAddress]);
         companyAddressToHiredCandidateAddress[msg.sender].push(_candidateAddress);
         // if ((companyaccountBalances[msg.sender]) >= (jobList[_jobId].bounty * jobList[_jobId].numberOfCandidateHired)) {
         //   revert Errors.NotEnoughFundDepositedByCompany();
@@ -406,7 +412,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
     function getCandidateHiredJobId(
         uint256 _jobId
     ) public view returns (FrontDoorStructs.Candidate[] memory) {
-        return hiredCpandidateListForJob[_jobId];
+        return hiredCandidateListForJob[_jobId];
     }
 
     /// disburseBounty
@@ -436,14 +442,14 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobList[_jobId].isDisbursed = true;
         uint256 bounty = jobList[_jobId].bounty;
 
-        uint hiredCount = hiredCpandidateListForJob[_jobId].length;
+        uint hiredCount = hiredCandidateListForJob[_jobId].length;
         for(uint i = 0 ; i < hiredCount ; i++) {
-          bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] =
-              bountyClaim[hiredCpandidateListForJob[_jobId][i].referrer] +
+          bountyClaim[hiredCandidateListForJob[_jobId][i].referrer] =
+              bountyClaim[hiredCandidateListForJob[_jobId][i].referrer] +
               (bounty * 6500) / hiredCount / 
               10_000;
-          bountyClaim[hiredCpandidateListForJob[_jobId][i].wallet] =
-              bountyClaim[hiredCpandidateListForJob[_jobId][i].wallet] +
+          bountyClaim[hiredCandidateListForJob[_jobId][i].wallet] =
+              bountyClaim[hiredCandidateListForJob[_jobId][i].wallet] +
               (bounty * 1000) / hiredCount / 
               10_000;
         }
@@ -483,6 +489,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         companyScores[companyAddress].push(newScore);
         updateCompanyScore(companyAddress);
     }
+
     function updateCompanyScore(address companyAddress) internal {
       uint256 finalScore = 0 ;
       uint256 count = companyScores[companyAddress].length;
@@ -490,6 +497,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         finalScore += companyScores[companyAddress][i].score;
       companyList[companyAddress].score = uint256(finalScore / count);
     }
+
     function updateReferrerScore(address referrerAddress) internal {
       uint256 finalScore = 0 ;
       uint256 count = referralScores[referrerAddress].length;
@@ -497,6 +505,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         finalScore += referralScores[referrerAddress][i].score;
       referrerList[referrerAddress].score = (finalScore * confirmedReferralCount[referrerAddress]) / referralIndex[referrerAddress].length;
     }
+
     function updateCandidateScore(address candidateAddress) internal {
       uint finalScore = 0 ;
       uint count = candidateScores[candidateAddress].length;
@@ -511,12 +520,15 @@ contract Recruitment is Ownable, ReentrancyGuard {
       }
       candidateList[candidateAddress].score = finalScore;
     }
+
     function getCandidateScore(address Address) external view returns (uint256) {
       return candidateList[Address].score;
     }
+
     function getReferrerScore(address Address) external view returns (uint256) {
       return referrerList[Address].score;
     }
+    
     function getCompanyScore(address Address) external view returns (uint256) {
       return companyList[Address].score;
     }

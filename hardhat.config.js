@@ -21,7 +21,10 @@ module.exports = {
     hardhat: {
       initialBaseFeePerGas: 0
     },
-
+    sepolia: {
+      url: INFURA_API,
+      accounts: [DEPLOYER_PRIVATE_KEY],
+    },
   },
   gasReporter: {
     enabled: true,
