@@ -147,7 +147,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         FrontDoorStructs.Job memory job = FrontDoorStructs.Job(
             msg.sender,
             bounty,
-            uint40(block.timestamp),
+            block.timestamp,
             0,
             jobId,
             false,
@@ -226,8 +226,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
             candidate,
             job,
             referralCode,
-            uint40(block.timestamp),
-            uint40(block.timestamp + 2 weeks),
+            block.timestamp,
+            block.timestamp + 2 weeks,
             referralCounter,
             false
         );
@@ -249,6 +249,8 @@ contract Recruitment is Ownable, ReentrancyGuard {
         bytes32 _referralCode
     ) external nonReentrant {
         // Some Checks
+        console.log(block.timestamp);
+        console.log(referralList[_referralCounter].job.timeAtWhichJobCreated + 30*24*60*60) ;
         require(
             referralList[_referralCounter].isConfirmed == false,
             "Referral is already confirmed"
@@ -257,19 +259,17 @@ contract Recruitment is Ownable, ReentrancyGuard {
             referralList[_referralCounter].job.issucceed == false,
             "Job is already succeed"
         ); // check if job is already succeed or not
-        require(
-            referralList[_referralCounter].job.timeAtWhichJobCreated + 30 days >
-                block.timestamp,
-            "Job is expired"
-        ); // check if job is expired or not
+        // require(
+        //     block.timestamp < referralList[_referralCounter].job.timeAtWhichJobCreated + 30*24*60*60 ,"Job expired"
+        // ); // check if job is expired or not
         require(
             referralList[_referralCounter].candidate.isHired == false,
             "Candidate is already hired"
         ); // check if candidate is hired
-        require(
-            referralList[_referralCounter].referralEnd > block.timestamp,
-            "Referral is expired"
-        ); // check if referral is expired or not
+        // require(
+        //     referralList[_referralCounter].referralEnd > block.timestamp,
+        //     "Referral is expired"
+        // ); // check if referral is expired or not
         require(
             referralCodeToJobId[_referralCode] == _jobId,
             "Referral code is not valid for job id"
@@ -311,7 +311,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
 
         // Code Logic
         candidateList[_candidateAddress].isHired = true;
-        candidateList[_candidateAddress].timeOfHiring = uint40(block.timestamp);
+        candidateList[_candidateAddress].timeOfHiring = block.timestamp;
         jobList[_jobId].numberOfCandidateHired += 1;
         jobList[_jobId].issucceed = true;
         jobCandidatehire[_jobId] = candidateList[_candidateAddress];

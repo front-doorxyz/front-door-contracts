@@ -193,6 +193,10 @@ describe('Recruitment', () => {
           .connect(referrer)
           .registerReferral(1, emailReferral, uuidBytes);
       await tx.wait();
+      // for (let index = 0; index < 10; index++) {
+      //   await ethers.provider.send('evm_mine');
+      // }
+      // await ethers.provider.send('evm_increaseTime', [10*24*60*60]);
       const jobsReffers = await recruitment
           .connect(referree)
           .confirmReferral(1, 1, uuidBytes);

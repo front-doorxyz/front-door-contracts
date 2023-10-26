@@ -6,7 +6,7 @@ library FrontDoorStructs {
         address wallet;
         bytes32 email;
         address referrer; // address of the referrer
-        uint40 timeOfHiring; // time at which candidate is hired
+        uint256 timeOfHiring; // time at which candidate is hired
         uint16 score;
         bool isScoreGivenByCompany; // bool if company gives score to candidate
         bool isHired;
@@ -23,7 +23,7 @@ library FrontDoorStructs {
     struct Job {
         address creator;
         uint256 bounty;
-        uint40 timeAtWhichJobCreated; // indicates time at which job is created job will only be listed for 30 days
+        uint256 timeAtWhichJobCreated; // indicates time at which job is created job will only be listed for 30 days
         uint16 numberOfCandidateHired; // number of candidates hired by the company
         uint16 id;
         bool issucceed; // is comapny has succesfully hired the candidate
@@ -36,8 +36,8 @@ library FrontDoorStructs {
         Candidate candidate;
         Job job;
         bytes32 referralCode;
-        uint40 timeAtWhichReferralStarted; // indicates time at which referral is made
-        uint40 referralEnd; // indicates time at which referral is ending  ** Referral should end after 2 weeks
+        uint256 timeAtWhichReferralStarted; // indicates time at which referral is made
+        uint256 referralEnd; // indicates time at which referral is ending  ** Referral should end after 2 weeks
         uint16 id;
         bool isConfirmed; // set by candidate if we wants to confirm the referral
     }
@@ -61,7 +61,7 @@ library FrontDoorStructs {
 
     struct ReferralCode {
         bytes32 code;
-        uint16 expirationDate;
+        uint256 expirationDate;
         bool isUsed;
     }
 }
