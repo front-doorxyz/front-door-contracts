@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Recruitment is Ownable {
+contract RecruitmentV2 is Ownable {
     IERC20 public token;
 
     struct Company {
