@@ -175,7 +175,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
         emit JobCreated(msg.sender, jobId);
         return jobId;
     }
-
     /**
      * @notice Registers a Company
      */
