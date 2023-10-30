@@ -86,6 +86,8 @@ contract Recruitment is Ownable {
         emit CompanyRegistered(msg.sender);
     }
 
+    /// Register a Referrer
+    /// @param _email hashed email of the referrer in bytes32
     function registerReferrer(bytes32 _email) external {
         require(_email.length > 0, "Invalid email hash");
         require(
@@ -219,7 +221,7 @@ contract Recruitment is Ownable {
         uint256 jobId,
         uint256 creationTime
     );
-    event RefererRegistered(address indexed referrer, bytes32 email);
+    event ReferrerRegistered(address indexed referrer, bytes32 email);
     event ReferralMade(address indexed referrer, uint256 referralId);
     event BountyDisbursed(address indexed candidate, uint256 amount);
     event CompanyRegistered(address indexed company);
