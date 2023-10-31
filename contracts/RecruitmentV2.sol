@@ -52,10 +52,8 @@ contract RecruitmentV2 is Ownable {
     mapping(uint256 => Referral) public referrals;
     mapping(uint256 => uint256[]) public jobIdRefferals;
     mapping(address => Referrer) public referrers;
-
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
-
     mapping(bytes32 => Candidate) public candidates;
 
     uint256 public nextJobId;
@@ -203,8 +201,6 @@ contract RecruitmentV2 is Ownable {
             true
         );
         referrals[_referralId].isConfirmed = true;
-
-
         emit ReferralConfirm(_referralId, _jobId, _candidateEmail);
     }
 
