@@ -123,10 +123,10 @@ contract RecruitmentV2 is Ownable {
         }
     }
 
-    /// Refers a candidate for a job
-    /// @param jobId job id for which the candidate is being referred
-    /// @param _candidateEmail hash of candidates email in bytes32
-    /// @param _referralCode hash of the referral code in bytes32
+    /// Reffer a Candidate
+    /// @param jobId Job id of the job for which the referral is made
+    /// @param _candidateEmail hash of candidate email in bytes32
+    /// @param _referralCode referral code of the referrer
     function referCandidate(
         uint256 jobId,
         bytes32 _candidateEmail,
@@ -166,13 +166,18 @@ contract RecruitmentV2 is Ownable {
         emit ReferralMade(msg.sender, referralId);
     }
 
+    /// Confirm Refferal by the candidate
+    /// @param _referralId referral id of the referral
+    /// @param _referralCode referral code of the referrer
+    /// @param _candidateEmail hash of candidate email in bytes32
     function confirmReferral(
         uint256 _referralId,
-        uint256 _jobId,
-        bytes32 _referralCode
+        bytes32 _referralCode,
+        bytes32 _candidateEmail
     ) external {
+        uint256 _jobId = referrals[_referralId].jobId;
         require(
-            referrals[_referralId].candidate == msg.sender,
+            referrals[_referralId].candidateEmail == _candidateEmail,
             "Not a candidate"
         );
         require(
@@ -191,8 +196,16 @@ contract RecruitmentV2 is Ownable {
             "Referral expired"
         );
 
+        candidates[_candidateEmail] = Candidate(
+            msg.sender,
+            _candidateEmail,
+            0,
+            true
+        );
         referrals[_referralId].isConfirmed = true;
-        referrals[_referralId].candidate = msg.sender;
+
+
+        emit ReferralConfirm(_referralId, _jobId, _candidateEmail);
     }
 
     function hireCandidate(
@@ -257,6 +270,7 @@ contract RecruitmentV2 is Ownable {
     );
     event ReferrerRegistered(address indexed referrer, bytes32 email);
     event ReferralMade(address indexed referrer, uint256 referralId);
+    event ReferralConfirm(uint256 indexed referralId, uint256 indexed jobId, bytes32 indexed candidateEmail);
     event BountyDisbursed(address indexed candidate, uint256 amount);
     event CompanyRegistered(address indexed company);
 }
