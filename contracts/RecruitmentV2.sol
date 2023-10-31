@@ -23,11 +23,12 @@ contract RecruitmentV2 is Ownable {
     struct Referral {
         address referrer;
         uint256 jobId;
-        address candidate;
+        bytes32 candidateEmail;
         bytes32 referralCode;
         uint256 timeCreatead;
+        uint256 id;
         bool isHired;
-        bool isRegistered;
+        bool isConfirmed;
     }
 
     struct Referrer {
@@ -36,20 +37,26 @@ contract RecruitmentV2 is Ownable {
         uint256 totalEarned;
         uint256 rewardsToClaim;
         uint8 score;
+        bool isReferrer;
     }
 
     struct Candidate {
         address wallet;
+        bytes32 email;
         uint8 score;
+        bool isCandidate;
     }
 
     mapping(address => Company) public companies;
     mapping(uint256 => Job) public jobs;
     mapping(uint256 => Referral) public referrals;
+    mapping(uint256 => uint256[]) public jobIdRefferals;
     mapping(address => Referrer) public referrers;
 
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
+
+    mapping(bytes32 => Candidate) public candidates;
 
     uint256 public nextJobId;
     uint256 public nextReferralId;
@@ -59,11 +66,6 @@ contract RecruitmentV2 is Ownable {
             companies[msg.sender].isRegistered == true,
             "Not a registered company"
         );
-        _;
-    }
-
-    modifier onlyExistingJob(uint256 jobId) {
-        require(jobs[jobId].company != address(0), "Job does not exist");
         _;
     }
 
@@ -94,7 +96,7 @@ contract RecruitmentV2 is Ownable {
             referrers[msg.sender].wallet != address(0),
             "Already registered referrer"
         );
-        referrers[msg.sender] = Referrer(msg.sender, _email, 0, 0, 0);
+        referrers[msg.sender] = Referrer(msg.sender, _email, 0, 0, 0, true);
         emit ReferrerRegistered(msg.sender, _email);
     }
 
@@ -121,34 +123,81 @@ contract RecruitmentV2 is Ownable {
         }
     }
 
-    function referCandidate(uint256 jobId, address candidate) external {
+    /// Refers a candidate for a job
+    /// @param jobId job id for which the candidate is being referred
+    /// @param _candidateEmail hash of candidates email in bytes32
+    /// @param _referralCode hash of the referral code in bytes32
+    function referCandidate(
+        uint256 jobId,
+        bytes32 _candidateEmail,
+        bytes32 _referralCode
+    ) external {
         require(
-            referrers[msg.sender].totalEarned >= 0,
+            referrers[msg.sender].wallet != address(0),
             "Not a registered referrer"
         );
-        require(candidate != address(0), "Invalid candidate address");
-
+        require(_candidateEmail.length > 0, "Invalid candidate email");
+        require(_referralCode.length > 0, "Invalid referral code");
+        require(jobs[jobId].company != address(0), "Job does not exist");
+        require(jobs[jobId].isOpen, "Job is not open");
+        require(referrers[msg.sender].isReferrer, "Not a registered referrer");
         uint256 referralId = nextReferralId++;
+        Candidate memory newCandidate = Candidate(
+            address(0),
+            _candidateEmail,
+            0,
+            true
+        );
+
         Referral memory newReferral = Referral(
             msg.sender,
             jobId,
-            candidate,
+            _candidateEmail,
+            _referralCode,
+            block.timestamp,
+            referralId,
+            false,
             false
         );
+
         referrals[referralId] = newReferral;
         referrerToReferrals[msg.sender].push(referralId);
 
         emit ReferralMade(msg.sender, referralId);
     }
 
+    function confirmReferral(
+        uint256 _referralId,
+        uint256 _jobId,
+        bytes32 _referralCode
+    ) external {
+        require(
+            referrals[_referralId].candidate == msg.sender,
+            "Not a candidate"
+        );
+        require(
+            referrals[_referralId].isConfirmed == false,
+            "Already confirmed"
+        );
+        require(referrals[_referralId].jobId == _jobId, "Invalid job id");
+        require(
+            referrals[_referralId].referralCode == _referralCode,
+            "Invalid referral code"
+        );
+        require(jobs[_jobId].isOpen, "Job is not open");
+        require(jobs[_jobId].company != address(0), "Job does not exist");
+        require(
+            referrals[_referralId].timeCreatead + 2 weeks > block.timestamp,
+            "Referral expired"
+        );
+
+        referrals[_referralId].isConfirmed = true;
+        referrals[_referralId].candidate = msg.sender;
+    }
+
     function hireCandidate(
         uint256 referralId
-    )
-        external
-        onlyRegisteredCompany
-        onlyExistingJob(referrals[referralId].jobId)
-        onlyOpenJob(referrals[referralId].jobId)
-    {
+    ) external onlyRegisteredCompany onlyOpenJob(referrals[referralId].jobId) {
         Referral storage referral = referrals[referralId];
         Job storage job = jobs[referral.jobId];
 
@@ -172,48 +221,33 @@ contract RecruitmentV2 is Ownable {
         emit BountyDisbursed(referral.candidate, job.bounty);
     }
 
+    /// returns the jobs created by a company
+    /// @param company address of the company
     function getCompanyJobs(
         address company
     ) public view returns (uint256[] memory) {
+        require(companies[company].isRegistered, "Company is not registered");
         return companyToJobs[company];
     }
 
+    /// returns the referrals made by a referrer
+    /// @param referrer address of the referrer
     function getReferrerReferrals(
         address referrer
     ) public view returns (uint256[] memory) {
+        require(referrers[referrer].isReferrer, "Referrer is not registered");
         return referrerToReferrals[referrer];
-    }
-
-    function updateJobBounty(
-        uint256 jobId,
-        uint256 newBounty
-    ) external onlyRegisteredCompany onlyExistingJob(jobId) onlyOpenJob(jobId) {
-        require(newBounty > 0, "Invalid bounty");
-        Job storage job = jobs[jobId];
-        require(
-            msg.sender == job.company,
-            "Only the company can update the bounty"
-        );
-        job.bounty = newBounty;
     }
 
     function closeJob(
         uint256 jobId
-    ) external onlyRegisteredCompany onlyExistingJob(jobId) onlyOpenJob(jobId) {
+    ) external onlyRegisteredCompany onlyOpenJob(jobId) {
         Job storage job = jobs[jobId];
         require(
             msg.sender == job.company,
             "Only the company can close the job"
         );
         job.isOpen = false;
-    }
-
-    function openJob(
-        uint256 jobId
-    ) external onlyRegisteredCompany onlyExistingJob(jobId) {
-        Job storage job = jobs[jobId];
-        require(msg.sender == job.company, "Only the company can open the job");
-        job.isOpen = true;
     }
 
     event JobCreated(
