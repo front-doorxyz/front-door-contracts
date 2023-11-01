@@ -113,7 +113,13 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         balances[msg.sender] += _bounty * _vacants;
         for (uint8 i = 0; i < _vacants; i++) {
             uint256 jobId = nextJobId++;
-            Job memory newJob = Job(msg.sender, _bounty, block.timestamp, true,false);
+            Job memory newJob = Job(
+                msg.sender,
+                _bounty,
+                block.timestamp,
+                true,
+                false
+            );
             jobs[jobId] = newJob;
             companyToJobs[msg.sender].push(jobId);
             emit JobCreated(msg.sender, jobId, block.timestamp);
@@ -217,7 +223,10 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     function getCompanyJobs(
         address company
     ) public view returns (uint256[] memory) {
-        require(companies[company].companyAddress != address(0), "Company is not registered");
+        require(
+            companies[company].companyAddress != address(0),
+            "Company is not registered"
+        );
         return companyToJobs[company];
     }
 
@@ -226,7 +235,10 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     function getReferrerReferrals(
         address referrer
     ) public view returns (uint256[] memory) {
-        require(referrers[referrer].reffererAddress != address(0), "Referrer is not registered");
+        require(
+            referrers[referrer].reffererAddress != address(0),
+            "Referrer is not registered"
+        );
         return referrerToReferrals[referrer];
     }
 
@@ -244,6 +256,8 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         token.transfer(job.company, job.bounty); // transfer the bounty back to the company
     }
 
+    /// Dirburse Job bounty after 90 days
+    /// @param _jobId job id of the job for which the bounty is to be disbursed
     function diburseBounty(
         uint256 _jobId
     ) external nonReentrant onlyRegisteredCompany {
@@ -260,11 +274,23 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 bounty = jobs[_jobId].bounty;
         uint256 referralId = jobIdtoReferralId[_jobId];
         bytes32 candidateEmail = referrals[referralId].candidateEmail;
+        address referrer = referrals[referralId].referrer;
         address candidate = candidates[candidateEmail].candidateAddress;
+        balances[msg.sender] -= bounty;
+        balances[referrer] += (bounty * 6500) / 10_000;
+        balances[candidate] += (bounty * 1000) / 10_000;
+        balances[frontDoorAddress] = (bounty * 2500) / 10_000;
+        jobs[_jobId].isDisbursed = true;
+        emit BountyDisbursed(_jobId);
+    }
 
+    function claimRewards() external nonReentrant {
+        uint256 balance = balances[msg.sender];
+        require(balance > 0, "No rewards to claim");
+        balances[msg.sender] = 0;
+        token.transfer(msg.sender, balance);
 
-
-
+        emit ClaimedRewards(msg.sender, balance);
     }
 
     event JobCreated(
@@ -279,6 +305,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 indexed jobId,
         bytes32 indexed candidateEmail
     );
-    event BountyDisbursed(address indexed candidate, uint256 amount);
+    event BountyDisbursed(uint256 indexed _jobId);
     event CompanyRegistered(address indexed company);
+    event ClaimedRewards(address indexed user, uint256 amount);
 }
