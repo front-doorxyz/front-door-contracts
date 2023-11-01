@@ -47,10 +47,7 @@ contract FNDR_Faucet is Ownable {
     }
 
     function requestTokens(uint _amount) external {
-        require(
-            lastRequest[msg.sender] + 1 days < block.timestamp,
-            "You can only request once per day"
-        );
+       
 
         lastRequest[msg.sender] = block.timestamp;
         IERC20(FNDRAddress).mint(msg.sender, _amount);

@@ -159,7 +159,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobIdCounter++;
         companyList[msg.sender].jobsCreated++;
 
- 
         bool success = frontDoorToken.transferFrom(
             msg.sender,
             address(this),
@@ -175,6 +174,7 @@ contract Recruitment is Ownable, ReentrancyGuard {
         emit JobCreated(msg.sender, jobId);
         return jobId;
     }
+
     /**
      * @notice Registers a Company
      */
