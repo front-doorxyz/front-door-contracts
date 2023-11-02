@@ -272,7 +272,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
     /// Dirburse Job bounty after 90 days
     /// @param _jobId job id of the job for which the bounty is to be disbursed
-    function diburseBounty(
+    function disburseBounty(
         uint256 _jobId
     ) external nonReentrant onlyRegisteredCompany {
         require(

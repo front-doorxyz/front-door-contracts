@@ -215,11 +215,11 @@ describe("Recruitment", () => {
       await hire.wait();
       const seconds = 31 * 24 * 60 * 60 * 3;
       await ethers.provider.send("evm_increaseTime", [seconds]);
-      await recruitment.connect(company).diburseBounty(jobs[0]);
+      await recruitment.connect(company).disburseBounty(jobs[0]);
       
     });
     it("Cannot disburse if timelock did not expired", async () => {
-      const { frontDoorToken, recruitment, company, referrer, referree } =
+        const { frontDoorToken, recruitment, company, referrer, referree } =
         await loadFixture(fixture);
       await recruitment.connect(company).registerCompany();
       const companyStruct = await recruitment.companies(company.address);
@@ -229,8 +229,7 @@ describe("Recruitment", () => {
       const jobId = await recruitment.connect(company).registerJob(bounty, 1);
       await jobId.wait();
       const jobs = await recruitment.getCompanyJobs(company.address);
-
-
+      console.log("jobs : ",jobs);
       const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.referrers(referrer.address);
@@ -244,17 +243,23 @@ describe("Recruitment", () => {
         .connect(referrer)
         .referCandidate(jobs[0], emailReferral, uuidBytes);
       await tx.wait();
+      const referralsJob = await recruitment.getReferralsOfJobId(jobs[0]);
+      console.log("referralsJob : ",referralsJob);
+      const referral = await recruitment.referrals(referralsJob[0]);
+   
       const jobsReffers = await recruitment
         .connect(referree)
-        .confirmReferral(1, 1, uuidBytes);
-      await jobsReffers.wait();
-      await recruitment.getCandidateListForJob(1);
+        .confirmReferral(referral.id, referral.referralCode, emailReferral);
+       await jobsReffers.wait();
+      const candidates = await recruitment.getReferralsOfJobId(jobs[0]);
+      console.log("candidates : ",candidates);
       const hire = await recruitment
         .connect(company)
-        .hireCandidate(referree.address, 1);
+        .hireCandidate(referral.id);
       await hire.wait();
+
       await expect(
-        recruitment.connect(company).disburseBounty(1)
+        recruitment.connect(company).disburseBounty(jobs[0])
       ).to.revertedWith("90 days are not completed yet");
     });
   });
