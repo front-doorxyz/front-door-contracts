@@ -20,6 +20,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         address company;
         uint256 bounty;
         uint256 creationTime;
+        uint256 hiredReferralId;
         bool isOpen;
         bool isDisbursed;
     }
@@ -58,7 +59,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
-    mapping(uint256 => uint256) public jobIdtoReferralId;
+   
 
     uint256 public nextJobId;
     uint256 public nextReferralId;
@@ -126,6 +127,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 msg.sender,
                 _bounty,
                 block.timestamp,
+                0,
                 true,
                 false
             );
@@ -167,7 +169,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
         referrals[referralId] = newReferral;
         referrerToReferrals[msg.sender].push(referralId);
-        jobIdtoReferralId[jobId] = referralId;
+        jobIdRefferals[jobId].push(referralId);
         emit ReferralMade(msg.sender, referralId);
     }
 
@@ -225,6 +227,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
         referral.isHired = true;
         job.isOpen = false;
+        job.hiredReferralId = referralId;
     }
 
     /// returns the jobs created by a company
@@ -281,7 +284,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             "90 days are not completed yet"
         );
         uint256 bounty = jobs[_jobId].bounty;
-        uint256 referralId = jobIdtoReferralId[_jobId];
+        uint256 referralId = jobs[_jobId].hiredReferralId;
         bytes32 candidateEmail = referrals[referralId].candidateEmail;
         address referrer = referrals[referralId].referrer;
         address candidate = candidates[candidateEmail].candidateAddress;
@@ -303,7 +306,12 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         emit ClaimedRewards(msg.sender, balance);
     }
 
-
+    /// Get referrals of a job
+    /// @param _jobId job id of the job
+    function getReferralsOfJobId(uint256 _jobId) external view returns(uint256[] memory){
+        return jobIdRefferals[_jobId];
+    }
+       
     event JobCreated(
         address indexed company,
         uint256 jobId,
