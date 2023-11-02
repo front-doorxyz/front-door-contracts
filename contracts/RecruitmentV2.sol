@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "hardhat/console.sol";
+
 contract RecruitmentV2 is Ownable, ReentrancyGuard {
     IERC20 public token;
     address frontDoorAddress;
@@ -35,6 +37,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
     struct Referrer {
         address reffererAddress;
+        bytes32 email;
         uint256 totalEarned;
         uint8 score;
     }
@@ -45,12 +48,13 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint8 score;
     }
 
-    mapping(address => uint256) balances;
+    mapping(address => uint256) public balances;
     mapping(address => Company) public companies;
     mapping(uint256 => Job) public jobs;
     mapping(uint256 => Referral) public referrals;
     mapping(uint256 => uint256[]) public jobIdRefferals;
     mapping(address => Referrer) public referrers;
+    mapping(bytes32 => address) public emailToReferrerAddress;
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
@@ -80,7 +84,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     /// Register a Company
     function registerCompany() external {
         require(
-            companies[msg.sender].companyAddress != address(0),
+            companies[msg.sender].companyAddress == address(0),
             "Already registered"
         );
         companies[msg.sender] = Company(msg.sender, 0);
@@ -92,17 +96,22 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     function registerReferrer(bytes32 _email) external {
         require(_email.length > 0, "Invalid email hash");
         require(
-            referrers[msg.sender].reffererAddress != address(0),
+            referrers[msg.sender].reffererAddress == address(0),
             "Already registered referrer"
         );
-        referrers[msg.sender] = Referrer(msg.sender, 0, 0);
+        require(
+            emailToReferrerAddress[_email] == address(0),
+            "Email already registered"
+        );
+        referrers[msg.sender] = Referrer(msg.sender,_email, 0, 0);
+        emailToReferrerAddress[_email] = msg.sender;
         emit ReferrerRegistered(msg.sender, _email);
     }
 
     /// Creates jobs for a company and stores them in the jobs mapping
     /// @param _bounty bounty for each job
     /// @param _vacants number of vacants for this position
-    function createJob(
+    function registerJob(
         uint256 _bounty,
         uint8 _vacants
     ) external onlyRegisteredCompany {
@@ -219,15 +228,15 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     }
 
     /// returns the jobs created by a company
-    /// @param company address of the company
+    /// @param _company address of the company to retrive the jobs
     function getCompanyJobs(
-        address company
+        address _company
     ) public view returns (uint256[] memory) {
         require(
-            companies[company].companyAddress != address(0),
+            companies[_company].companyAddress != address(0),
             "Company is not registered"
         );
-        return companyToJobs[company];
+        return companyToJobs[_company];
     }
 
     /// returns the referrals made by a referrer
@@ -284,6 +293,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         emit BountyDisbursed(_jobId);
     }
 
+    /// Claim rewards using Pull over Push pattern
     function claimRewards() external nonReentrant {
         uint256 balance = balances[msg.sender];
         require(balance > 0, "No rewards to claim");
@@ -292,6 +302,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
         emit ClaimedRewards(msg.sender, balance);
     }
+
 
     event JobCreated(
         address indexed company,

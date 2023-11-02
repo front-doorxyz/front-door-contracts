@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 const {
   loadFixture,
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
