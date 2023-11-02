@@ -184,7 +184,7 @@ describe("Recruitment", () => {
       await frontDoorToken.connect(company).approve(recruitment.target, bounty);
       const jobId = await recruitment.connect(company).registerJob(bounty, 1);
       await jobId.wait();
-
+      const jobs = await recruitment.getCompanyJobs(company.address);
       const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.referrers(referrer.address);
@@ -196,8 +196,9 @@ describe("Recruitment", () => {
       const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral, uuidBytes);
+        .referCandidate(jobs[0], emailReferral, uuidBytes);
       await tx.wait();
+      
       const jobsReffers = await recruitment
         .connect(referree)
         .confirmReferral(1, 1, uuidBytes);
@@ -221,6 +222,8 @@ describe("Recruitment", () => {
       await frontDoorToken.connect(company).approve(recruitment.target, bounty);
       const jobId = await recruitment.connect(company).registerJob(bounty, 1);
       await jobId.wait();
+      const jobs = await recruitment.getCompanyJobs(company.address);
+
 
       const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
@@ -233,7 +236,7 @@ describe("Recruitment", () => {
       const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral, uuidBytes);
+        .referCandidate(jobs[0], emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
@@ -260,6 +263,7 @@ describe("Recruitment", () => {
       await frontDoorToken.connect(company).approve(recruitment.target, bounty);
       const jobId = await recruitment.connect(company).registerJob(bounty, 1);
       await jobId.wait();
+      const jobs = await recruitment.getCompanyJobs(company.address);
       const email = ethers.encodeBytes32String("john.doe@mail.com");
       await recruitment.connect(referrer).registerReferrer(email);
       const referrerData = await recruitment.referrers(referrer.address);
@@ -271,11 +275,11 @@ describe("Recruitment", () => {
       const uuidBytes = ethers.toUtf8Bytes(uuid);
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral, uuidBytes);
+        .referCandidate(1, emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
-        .confirmReferral(1, 1, uuidBytes);
+        .confirmReferral(jobs[0], 1, uuidBytes);
       await jobsReffers.wait();
       await recruitment.getCandidateListForJob(1);
       await recruitment.connect(company).hireCandidate(referree.address, 1);
@@ -302,16 +306,17 @@ describe("Recruitment", () => {
       );
       const uuid = uuidv4().replaceAll("-", "");
       const uuidBytes = ethers.toUtf8Bytes(uuid);
+      const jobs = await recruitment.getCompanyJobs(company.address);
 
       const tx = await recruitment
         .connect(referrer)
-        .registerReferral(1, emailReferral, uuidBytes);
+        .referCandidate(jobs[0], emailReferral, uuidBytes);
       await tx.wait();
       const jobsReffers = await recruitment
         .connect(referree)
         .confirmReferral(1, 1, uuidBytes);
       await jobsReffers.wait();
-      const candadidatesForJob = await recruitment.getCandidateListForJob(1);
+      const candadidatesForJob = await recruitment.getCandidateListForJob(jobs[0]);
       const hire = await recruitment
         .connect(company)
         .hireCandidate(referree.address, 1);
