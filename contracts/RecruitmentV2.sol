@@ -60,6 +60,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
     mapping(address => mapping(bytes32 => bool)) public companyHiredCandidate;
+    mapping(address => bytes32) public candidateAddressToEmail;
 
     uint256 public nextJobId;
     uint256 public nextReferralId;
@@ -203,6 +204,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             "Referral expired"
         );
         if (candidates[_candidateEmail].candidateAddress == address(0)) {
+            candidateAddressToEmail[msg.sender] = _candidateEmail;
             candidates[_candidateEmail] = Candidate(
                 msg.sender,
                 _candidateEmail,
@@ -342,6 +344,28 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         }
     }
 
+    function provideCompanyFeedback(address _company, uint8 _score) external {
+        require(_score > 0 && _score <= 100, "Invalid score");
+        require(
+            companies[_company].companyAddress != address(0),
+            "Company does not exist"
+        );
+        require(candidateAddressToEmail[msg.sender].length > 0, "Not a candidate");
+        bytes32 candidateEmail = candidateAddressToEmail[msg.sender];
+        require(
+            companyHiredCandidate[_company][candidateEmail],
+            "Candidate not hired by the company"
+        );
+        if (companies[_company].score == 0) {
+            companies[_company].score = _score;
+        }
+        if (companies[_company].score != 0) {
+            companies[_company].score =
+                (companies[_company].score + _score) /
+                2;
+        }
+        
+    }
     event JobCreated(
         address indexed company,
         uint256 jobId,
