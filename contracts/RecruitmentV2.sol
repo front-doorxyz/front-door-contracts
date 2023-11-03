@@ -355,6 +355,9 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         emit FeedbackProvided(candidates[_candidateEmail].candidateAddress, _score);
     }
 
+    /// Provide Feedback to a company by the candidate
+    /// @param _company company address to provide feedback
+    /// @param _score score to be assigned to the company
     function provideCompanyFeedback(address _company, uint8 _score) external validScore(_score) {
         require(_score > 0 && _score <= 100, "Invalid score");
         require(
@@ -378,6 +381,9 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         emit FeedbackProvided(_company, _score);   
     }
 
+    /// Provide Feedback to a referrer by the company
+    /// @param _referrer referrer address to provide feedback
+    /// @param _score score to be assigned to the referrer
     function provideReferrerFeedback(address _referrer, uint8 _score) external onlyRegisteredCompany validScore(_score) {
         require(
             referrers[_referrer].reffererAddress != address(0),
