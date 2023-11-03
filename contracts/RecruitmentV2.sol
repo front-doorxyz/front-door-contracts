@@ -60,10 +60,16 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
     mapping(address => mapping(bytes32 => bool)) public companyHiredCandidate;
+    mapping(address => mapping(address => bool)) public companyReferred;
     mapping(address => bytes32) public candidateAddressToEmail;
 
     uint256 public nextJobId;
     uint256 public nextReferralId;
+
+    modifier validScore(uint8 _score) {
+        require(_score > 0 && _score <= 100, "Invalid score");
+        _;
+    }
 
     modifier onlyRegisteredCompany() {
         require(
@@ -171,6 +177,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         referrals[referralId] = newReferral;
         referrerToReferrals[msg.sender].push(referralId);
         jobIdRefferals[jobId].push(referralId);
+        companyReferred[jobs[jobId].company][msg.sender] = true;
         emit ReferralMade(msg.sender, referralId);
     }
 
@@ -317,11 +324,14 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         return jobIdRefferals[_jobId];
     }
 
+    /// Provide Feedback to a candidate by the company
+    /// @param _candidateEmail candidate email to provide feedback
+    /// @param _score assigned score to the candidate
     function provideCandidateFeedback(
         bytes32 _candidateEmail,
         uint8 _score
-    ) external onlyRegisteredCompany {
-        require(_score > 0 && _score <= 100, "Invalid score");
+    ) external onlyRegisteredCompany  validScore(_score){
+      
         require(
             candidates[_candidateEmail].candidateAddress != address(0),
             "Candidate does not exist"
@@ -342,9 +352,10 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 (candidates[_candidateEmail].score + _score) /
                 2;
         }
+        emit FeedbackProvided(candidates[_candidateEmail].candidateAddress, _score);
     }
 
-    function provideCompanyFeedback(address _company, uint8 _score) external {
+    function provideCompanyFeedback(address _company, uint8 _score) external validScore(_score) {
         require(_score > 0 && _score <= 100, "Invalid score");
         require(
             companies[_company].companyAddress != address(0),
@@ -364,13 +375,30 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 (companies[_company].score + _score) /
                 2;
         }
-        
+        emit FeedbackProvided(_company, _score);   
+    }
+
+    function provideReferrerFeedback(address _referrer, uint8 _score) external onlyRegisteredCompany validScore(_score) {
+        require(
+            referrers[_referrer].reffererAddress != address(0),
+            "Referrer does not exist"
+        );
+        require(companyReferred[msg.sender][_referrer], "Referrer not referred by the company");
+        if(referrers[_referrer].score == 0) {
+            referrers[_referrer].score = _score;
+        }
+        if(referrers[_referrer].score != 0) {
+            referrers[_referrer].score = (referrers[_referrer].score + _score) / 2;
+        }
+        emit FeedbackProvided(_referrer, _score);
     }
     event JobCreated(
         address indexed company,
         uint256 jobId,
         uint256 creationTime
     );
+
+    event FeedbackProvided(address indexed company, uint8 score);
     event ReferrerRegistered(address indexed referrer, bytes32 email);
     event ReferralMade(address indexed referrer, uint256 referralId);
     event ReferralConfirm(
