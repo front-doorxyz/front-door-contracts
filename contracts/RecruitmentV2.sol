@@ -59,7 +59,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
-   
+    mapping(address => mapping(bytes32 => bool)) public companyHiredCandidate;
 
     uint256 public nextJobId;
     uint256 public nextReferralId;
@@ -104,7 +104,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             emailToReferrerAddress[_email] == address(0),
             "Email already registered"
         );
-        referrers[msg.sender] = Referrer(msg.sender,_email, 0, 0);
+        referrers[msg.sender] = Referrer(msg.sender, _email, 0, 0);
         emailToReferrerAddress[_email] = msg.sender;
         emit ReferrerRegistered(msg.sender, _email);
     }
@@ -182,8 +182,6 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         bytes32 _referralCode,
         bytes32 _candidateEmail
     ) external {
-        
-        
         uint256 _jobId = referrals[_referralId].jobId;
         require(
             referrals[_referralId].candidateEmail == _candidateEmail,
@@ -230,6 +228,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         referral.isHired = true;
         job.isOpen = false;
         job.hiredReferralId = referralId;
+        companyHiredCandidate[msg.sender][referral.candidateEmail] = true;
     }
 
     /// returns the jobs created by a company
@@ -310,10 +309,39 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
     /// Get referrals of a job
     /// @param _jobId job id of the job
-    function getReferralsOfJobId(uint256 _jobId) external view returns(uint256[] memory){
+    function getReferralsOfJobId(
+        uint256 _jobId
+    ) external view returns (uint256[] memory) {
         return jobIdRefferals[_jobId];
     }
-       
+
+    function provideCandidateFeedback(
+        bytes32 _candidateEmail,
+        uint8 _score
+    ) external onlyRegisteredCompany {
+        require(_score > 0 && _score <= 100, "Invalid score");
+        require(
+            candidates[_candidateEmail].candidateAddress != address(0),
+            "Candidate does not exist"
+        );
+        require(
+            companies[msg.sender].companyAddress != address(0),
+            "Company does not exist"
+        );
+        require(
+            companyHiredCandidate[msg.sender][_candidateEmail],
+            "Candidate not hired by the company"
+        );
+        if (candidates[_candidateEmail].score == 0) {
+            candidates[_candidateEmail].score = _score;
+        }
+        if (candidates[_candidateEmail].score != 0) {
+            candidates[_candidateEmail].score =
+                (candidates[_candidateEmail].score + _score) /
+                2;
+        }
+    }
+
     event JobCreated(
         address indexed company,
         uint256 jobId,
