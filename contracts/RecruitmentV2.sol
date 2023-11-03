@@ -330,8 +330,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     function provideCandidateFeedback(
         bytes32 _candidateEmail,
         uint8 _score
-    ) external onlyRegisteredCompany  validScore(_score){
-      
+    ) external onlyRegisteredCompany validScore(_score) {
         require(
             candidates[_candidateEmail].candidateAddress != address(0),
             "Candidate does not exist"
@@ -352,19 +351,28 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 (candidates[_candidateEmail].score + _score) /
                 2;
         }
-        emit FeedbackProvided(candidates[_candidateEmail].candidateAddress, _score);
+        emit FeedbackProvided(
+            candidates[_candidateEmail].candidateAddress,
+            _score
+        );
     }
 
     /// Provide Feedback to a company by the candidate
     /// @param _company company address to provide feedback
     /// @param _score score to be assigned to the company
-    function provideCompanyFeedback(address _company, uint8 _score) external validScore(_score) {
+    function provideCompanyFeedback(
+        address _company,
+        uint8 _score
+    ) external validScore(_score) {
         require(_score > 0 && _score <= 100, "Invalid score");
         require(
             companies[_company].companyAddress != address(0),
             "Company does not exist"
         );
-        require(candidateAddressToEmail[msg.sender].length > 0, "Not a candidate");
+        require(
+            candidateAddressToEmail[msg.sender].length > 0,
+            "Not a candidate"
+        );
         bytes32 candidateEmail = candidateAddressToEmail[msg.sender];
         require(
             companyHiredCandidate[_company][candidateEmail],
@@ -378,32 +386,40 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 (companies[_company].score + _score) /
                 2;
         }
-        emit FeedbackProvided(_company, _score);   
+        emit FeedbackProvided(_company, _score);
     }
 
     /// Provide Feedback to a referrer by the company
     /// @param _referrer referrer address to provide feedback
     /// @param _score score to be assigned to the referrer
-    function provideReferrerFeedback(address _referrer, uint8 _score) external onlyRegisteredCompany validScore(_score) {
+    function provideReferrerFeedback(
+        address _referrer,
+        uint8 _score
+    ) external onlyRegisteredCompany validScore(_score) {
         require(
             referrers[_referrer].reffererAddress != address(0),
             "Referrer does not exist"
         );
-        require(companyReferred[msg.sender][_referrer], "Referrer not referred by the company");
-        if(referrers[_referrer].score == 0) {
+        require(
+            companyReferred[msg.sender][_referrer],
+            "Referrer not referred by the company"
+        );
+        if (referrers[_referrer].score == 0) {
             referrers[_referrer].score = _score;
         }
-        if(referrers[_referrer].score != 0) {
-            referrers[_referrer].score = (referrers[_referrer].score + _score) / 2;
+        if (referrers[_referrer].score != 0) {
+            referrers[_referrer].score =
+                (referrers[_referrer].score + _score) /
+                2;
         }
         emit FeedbackProvided(_referrer, _score);
     }
+
     event JobCreated(
         address indexed company,
         uint256 jobId,
         uint256 creationTime
     );
-
     event FeedbackProvided(address indexed company, uint8 score);
     event ReferrerRegistered(address indexed referrer, bytes32 email);
     event ReferralMade(address indexed referrer, uint256 referralId);
