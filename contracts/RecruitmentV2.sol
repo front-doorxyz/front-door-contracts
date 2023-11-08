@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
 
 contract RecruitmentV2 is Ownable, ReentrancyGuard {
-    IERC20 public token;
+    IERC20 public frontDoorTkn;
     address frontDoorAddress;
 
     struct Company {
@@ -17,16 +17,18 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     }
 
     struct Job {
-        address company;
+        address companyAddress;
         uint256 bounty;
         uint256 creationTime;
+        uint256 closedTime;
+        uint256 hiredTime;
         uint256 hiredReferralId;
         bool isOpen;
         bool isDisbursed;
     }
 
     struct Referral {
-        address referrer;
+        address referrerAddress;
         uint256 jobId;
         bytes32 candidateEmail;
         bytes32 referralCode;
@@ -53,18 +55,18 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     mapping(address => Company) public companies;
     mapping(uint256 => Job) public jobs;
     mapping(uint256 => Referral) public referrals;
-    mapping(uint256 => uint256[]) public jobIdRefferals;
+    mapping(uint256 => uint256[]) public jobIdToRefferals;
     mapping(address => Referrer) public referrers;
     mapping(bytes32 => address) public emailToReferrerAddress;
     mapping(address => uint256[]) public companyToJobs;
     mapping(address => uint256[]) public referrerToReferrals;
     mapping(bytes32 => Candidate) public candidates;
-    mapping(address => mapping(bytes32 => bool)) public companyHiredCandidate;
-    mapping(address => mapping(address => bool)) public companyReferred;
+    mapping(address => mapping(bytes32 => bool)) public companyToHiredCandidate;
+    mapping(address => mapping(address => bool)) public companyToReferred;
     mapping(address => bytes32) public candidateAddressToEmail;
 
-    uint256 public nextJobId;
-    uint256 public nextReferralId;
+    uint256 private nextJobId;
+    uint256 private nextReferralId;
 
     modifier validScore(uint8 _score) {
         require(_score > 0 && _score <= 100, "Invalid score");
@@ -85,7 +87,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     }
 
     constructor(address tokenAddress, address _frontDoorAddress) Ownable() {
-        token = IERC20(tokenAddress);
+        frontDoorTkn = IERC20(tokenAddress);
         frontDoorAddress = _frontDoorAddress;
     }
 
@@ -126,7 +128,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         require(_bounty > 0, "Invalid bounty");
         require(_vacants > 0, "Invalid vacants");
 
-        token.transferFrom(msg.sender, address(this), _bounty * _vacants);
+        frontDoorTkn.transferFrom(msg.sender, address(this), _bounty * _vacants);
         balances[msg.sender] += _bounty * _vacants;
         for (uint8 i = 0; i < _vacants; i++) {
             uint256 jobId = nextJobId++;
@@ -134,6 +136,8 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
                 msg.sender,
                 _bounty,
                 block.timestamp,
+                0,
+                0,
                 0,
                 true,
                 false
@@ -159,7 +163,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         );
         require(_candidateEmail.length > 0, "Invalid candidate email");
         require(_referralCode.length > 0, "Invalid referral code");
-        require(jobs[jobId].company != address(0), "Job does not exist");
+        require(jobs[jobId].companyAddress != address(0), "Job does not exist");
         require(jobs[jobId].isOpen, "Job is not open");
         uint256 referralId = nextReferralId++;
 
@@ -176,8 +180,8 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
 
         referrals[referralId] = newReferral;
         referrerToReferrals[msg.sender].push(referralId);
-        jobIdRefferals[jobId].push(referralId);
-        companyReferred[jobs[jobId].company][msg.sender] = true;
+        jobIdToRefferals[jobId].push(referralId);
+        companyToReferred[jobs[jobId].companyAddress][msg.sender] = true;
         emit ReferralMade(msg.sender, referralId);
     }
 
@@ -205,7 +209,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             "Invalid referral code"
         );
         require(jobs[_jobId].isOpen, "Job is not open");
-        require(jobs[_jobId].company != address(0), "Job does not exist");
+        require(jobs[_jobId].companyAddress != address(0), "Job does not exist");
         require(
             referrals[_referralId].timeCreatead + 2 weeks > block.timestamp,
             "Referral expired"
@@ -231,13 +235,14 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         Referral storage referral = referrals[referralId];
         Job storage job = jobs[referral.jobId];
 
-        require(msg.sender == job.company, "Only the company can hire");
+        require(msg.sender == job.companyAddress, "Only the company can hire");
         require(!referral.isHired, "Candidate already hired");
+        require(referral.isConfirmed, "Referral not confirmed");
 
         referral.isHired = true;
         job.isOpen = false;
         job.hiredReferralId = referralId;
-        companyHiredCandidate[msg.sender][referral.candidateEmail] = true;
+        companyToHiredCandidate[msg.sender][referral.candidateEmail] = true;
     }
 
     /// returns the jobs created by a company
@@ -271,11 +276,11 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     ) external onlyRegisteredCompany onlyOpenJob(jobId) {
         Job storage job = jobs[jobId];
         require(
-            msg.sender == job.company,
+            msg.sender == job.companyAddress,
             "Only the company can close the job"
         );
         job.isOpen = false;
-        token.transfer(job.company, job.bounty); // transfer the bounty back to the company
+        frontDoorTkn.transfer(job.companyAddress, job.bounty); // transfer the bounty back to the company
     }
 
     /// Dirburse Job bounty after 90 days
@@ -284,7 +289,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 _jobId
     ) external nonReentrant onlyRegisteredCompany {
         require(
-            jobs[_jobId].company == msg.sender,
+            jobs[_jobId].companyAddress == msg.sender,
             "Only the company can disburse bounty"
         );
         require(jobs[_jobId].isOpen == false, "Job is still open");
@@ -296,7 +301,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 bounty = jobs[_jobId].bounty;
         uint256 referralId = jobs[_jobId].hiredReferralId;
         bytes32 candidateEmail = referrals[referralId].candidateEmail;
-        address referrer = referrals[referralId].referrer;
+        address referrer = referrals[referralId].referrerAddress;
         address candidate = candidates[candidateEmail].candidateAddress;
         balances[msg.sender] -= bounty;
         balances[referrer] += (bounty * 6500) / 10_000;
@@ -311,7 +316,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 balance = balances[msg.sender];
         require(balance > 0, "No rewards to claim");
         balances[msg.sender] = 0;
-        token.transfer(msg.sender, balance);
+        frontDoorTkn.transfer(msg.sender, balance);
 
         emit ClaimedRewards(msg.sender, balance);
     }
@@ -321,7 +326,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     function getReferralsOfJobId(
         uint256 _jobId
     ) external view returns (uint256[] memory) {
-        return jobIdRefferals[_jobId];
+        return jobIdToRefferals[_jobId];
     }
 
     /// Provide Feedback to a candidate by the company
@@ -340,7 +345,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             "Company does not exist"
         );
         require(
-            companyHiredCandidate[msg.sender][_candidateEmail],
+            companyToHiredCandidate[msg.sender][_candidateEmail],
             "Candidate not hired by the company"
         );
         if (candidates[_candidateEmail].score == 0) {
@@ -375,7 +380,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         );
         bytes32 candidateEmail = candidateAddressToEmail[msg.sender];
         require(
-            companyHiredCandidate[_company][candidateEmail],
+            companyToHiredCandidate[_company][candidateEmail],
             "Candidate not hired by the company"
         );
         if (companies[_company].score == 0) {
@@ -401,7 +406,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
             "Referrer does not exist"
         );
         require(
-            companyReferred[msg.sender][_referrer],
+            companyToReferred[msg.sender][_referrer],
             "Referrer not referred by the company"
         );
         if (referrers[_referrer].score == 0) {
