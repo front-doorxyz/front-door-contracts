@@ -2,7 +2,6 @@
 const {
   loadFixture,
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
@@ -53,7 +52,7 @@ describe("Faucet", function () {
       expect(await frontDoorToken.balanceOf(user)).to.equal(ethers.parseEther("5000000"));
     });
     it("User should not be able to request tokens before timelock expires", async function () {
-        const {frontDoorToken, faucet, owner, user } = await loadFixture(deployFixture);
+        const {frontDoorToken, faucet, user } = await loadFixture(deployFixture);
         const userBalance = await frontDoorToken.balanceOf(user);
         expect(userBalance).to.equal(0);
         await faucet.connect(user).requestTokens(ethers.parseEther("5000000"));
@@ -61,7 +60,7 @@ describe("Faucet", function () {
         await expect(faucet.connect(user).requestTokens(ethers.parseEther("2500000"))).to.revertedWith("You can only request once per day");
     });
     it("User should be able to request tokens after timelock expires", async function () {
-      const {frontDoorToken, faucet, owner, user } = await loadFixture(deployFixture);
+      const {frontDoorToken, faucet, user } = await loadFixture(deployFixture);
       const userBalance = await frontDoorToken.balanceOf(user);
       expect(userBalance).to.equal(0);
       await faucet.connect(user).requestTokens(ethers.parseEther("5000000"));
