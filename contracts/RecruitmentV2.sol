@@ -23,6 +23,7 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
         uint256 closedTime;
         uint256 hiredTime;
         uint256 hiredReferralId;
+        uint256 jobId;
         bool isOpen;
         bool isDisbursed;
     }
@@ -41,7 +42,6 @@ contract RecruitmentV2 is Ownable, ReentrancyGuard {
     struct Referrer {
         address reffererAddress;
         bytes32 email;
-        uint256 totalEarned;
         uint8 score;
     }
 
