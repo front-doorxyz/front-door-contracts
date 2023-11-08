@@ -159,9 +159,6 @@ contract Recruitment is Ownable, ReentrancyGuard {
         jobIdCounter++;
         companyList[msg.sender].jobsCreated++;
 
-        // implement  company to pay the bounty upfront
-        frontDoorToken.approve(address(this), bounty); // asking user for approval to transfer bounty
-
         bool success = frontDoorToken.transferFrom(
             msg.sender,
             address(this),
