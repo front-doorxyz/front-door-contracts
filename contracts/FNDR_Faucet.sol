@@ -50,9 +50,9 @@ contract FNDR_Faucet is Ownable {
         FNDRAddress = _ERC20Address;
     }
 
-    function requestTokens(uint _amount) external {
-        IERC20(FNDRAddress).mint(msg.sender, _amount);
-        emit TokensTransfered(msg.sender, _amount);
+    function requestTokens() external {
+        IERC20(FNDRAddress).mint(msg.sender, 10000*10**18);
+        emit TokensTransfered(msg.sender, 10000*10**18);
     }
 
     function requestEth() external {
